@@ -3,7 +3,7 @@
 async function request(path, options = {}) {
   const res = await fetch(`${CONFIG.API_BASE}${path}`, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options
+    ...options,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -31,44 +31,53 @@ function buildQuery(params = {}) {
 }
 
 export const api = {
-  getSubmissions: (params = {}) => request(`/admin/submissions${buildQuery(params)}`),
+  getSubmissions: (params = {}) =>
+    request(`/admin/submissions${buildQuery(params)}`),
   getSubmission: (id) => request(`/admin/submissions/${id}`),
   getUsers: () => request("/admin/users"),
   getUser: (userId) => request(`/admin/users/${userId}`),
   uploadAdminMedia: ({ dataUrl, url, folder } = {}) =>
     request("/admin/media/upload", {
       method: "POST",
-      body: JSON.stringify({ dataUrl, url, folder })
+      body: JSON.stringify({ dataUrl, url, folder }),
     }),
   updateUserProfile: (userId, body) =>
     request(`/admin/users/${userId}/profile`, {
       method: "PATCH",
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     }),
   approveSubmission: (id, body) =>
     request(`/admin/submissions/${id}/approve`, {
       method: "POST",
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     }),
   verifyPayment: (id) =>
     request(`/admin/submissions/${id}/verify-payment`, {
-      method: "POST"
+      method: "POST",
     }),
   verifySubmissionField: (id, body) =>
     request(`/admin/submissions/${id}/verify-field`, {
       method: "POST",
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+    }),
+  getRequests: (params = {}) => request(`/admin/requests${buildQuery(params)}`),
+  getRequest: (id) => request(`/admin/requests/${id}`),
+  sendRequestEmail: (id, body) =>
+    request(`/admin/requests/${id}/send-email`, {
+      method: "POST",
+      body: JSON.stringify(body),
     }),
   sendEmail: (body) =>
     request("/admin/email", {
       method: "POST",
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     }),
   sendChat: (userId, message) =>
     request("/chat", {
       method: "POST",
-      body: JSON.stringify({ userId, message })
-    })
+      body: JSON.stringify({ userId, message }),
+    }),
+  getChatHistory: (userId) => request(`/chat/history/${userId}`),
 };
 
 function uploadViaXhr({ url, formData, onProgress }) {
@@ -104,7 +113,8 @@ function uploadViaXhr({ url, formData, onProgress }) {
 }
 
 export async function uploadToCloudinary(file, options = {}) {
-  const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
+  const onProgress =
+    typeof options.onProgress === "function" ? options.onProgress : null;
   const uploadViaBackend = async () => {
     if (onProgress) onProgress(5);
     const reader = new FileReader();

@@ -6,6 +6,8 @@ import AdminApplicationDetailPage from "./pages/AdminApplicationDetailPage.jsx";
 import AdminApplicationsPage from "./pages/AdminApplicationsPage.jsx";
 import AdminClaimDetailPage from "./pages/AdminClaimDetailPage.jsx";
 import AdminClaimsPage from "./pages/AdminClaimsPage.jsx";
+import AdminRequestsPage from "./pages/AdminRequestsPage.jsx";
+import AdminRequestDetailPage from "./pages/AdminRequestDetailPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import LoginPage from "./pages/Login.jsx";
 import AdminUserDetailPage from "./pages/AdminUserDetailPage.jsx";
@@ -46,6 +48,8 @@ export default function App() {
           <Route path="applications/:id" element={<AdminApplicationDetailPage />} />
           <Route path="claims" element={<AdminClaimsPage />} />
           <Route path="claims/:id" element={<AdminClaimDetailPage />} />
+          <Route path="requests" element={<AdminRequestsPage />} />
+          <Route path="requests/:id" element={<AdminRequestDetailPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="users/:userId" element={<AdminUserDetailPage />} />
           <Route path="analytics" element={<AdminAnalyticsPage />} />

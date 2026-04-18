@@ -7,7 +7,7 @@ import {
   ReadOnlyField,
   SectionHeading,
   StatusBadge,
-  Surface
+  Surface,
 } from "../components/AdminUi.jsx";
 import { api, uploadToCloudinary } from "../services/api.js";
 import {
@@ -15,7 +15,7 @@ import {
   formatMoney,
   formatPercent,
   getApplicationFields,
-  isLockedSubmission
+  isLockedSubmission,
 } from "../utils/admin.js";
 
 const ARRAY_MEDIA_KEYS = new Set(["evidence", "property_images", "documents"]);
@@ -23,9 +23,13 @@ const ARRAY_MEDIA_KEYS = new Set(["evidence", "property_images", "documents"]);
 function coerceEditedValue(submission, key, rawValue) {
   const current = submission?.data?.[key];
   if (typeof current === "boolean") {
-    const normalized = String(rawValue ?? "").trim().toLowerCase();
-    if (normalized === "true" || normalized === "yes" || normalized === "1") return true;
-    if (normalized === "false" || normalized === "no" || normalized === "0") return false;
+    const normalized = String(rawValue ?? "")
+      .trim()
+      .toLowerCase();
+    if (normalized === "true" || normalized === "yes" || normalized === "1")
+      return true;
+    if (normalized === "false" || normalized === "no" || normalized === "0")
+      return false;
     return Boolean(rawValue);
   }
   if (typeof current === "number") {
@@ -38,7 +42,7 @@ function coerceEditedValue(submission, key, rawValue) {
 function buildUpdatePayload(submission, key, value, replacements = []) {
   const metaKeys = {
     riskScoreFinal: true,
-    premiumAmount: true
+    premiumAmount: true,
   };
 
   const body = {
@@ -46,7 +50,7 @@ function buildUpdatePayload(submission, key, value, replacements = []) {
     user: { workflow: { collected_fields: {} } },
     submission_updates: {},
     url_replacements: { items: replacements },
-    require_cloudinary: true
+    require_cloudinary: true,
   };
 
   if (metaKeys[key]) {
@@ -57,7 +61,7 @@ function buildUpdatePayload(submission, key, value, replacements = []) {
       body.submission_updates.premiumFinal = {
         amount: Number(value || 0),
         currency: submission?.premiumFinal?.currency || "NGN",
-        period: submission?.premiumFinal?.period || "year"
+        period: submission?.premiumFinal?.period || "year",
       };
     }
   } else {
@@ -82,6 +86,7 @@ export default function AdminApplicationDetailPage() {
   const [emailForm, setEmailForm] = useState({ subject: "", text: "" });
   const [previewMedia, setPreviewMedia] = useState(null);
   const [verifyingField, setVerifyingField] = useState(null);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({});
 
   useEffect(() => {
@@ -109,23 +114,25 @@ export default function AdminApplicationDetailPage() {
   const locked = isLockedSubmission(submission);
   const { fields } = useMemo(
     () => getApplicationFields(submission),
-    [submission]
+    [submission],
   );
 
   const overviewKeys = new Set(["full_name", "email", "phone", "bvn"]);
   const mediaFields = fields.filter((field) => field.media);
   const verifyableFields = new Set(["bvn", "nin", "plate_number"]);
-  const manualVerifications = submission?.adminNotes?.manual_verifications || {};
+  const manualVerifications =
+    submission?.adminNotes?.manual_verifications || {};
 
   const fieldValues = {
-    full_name: submission?.data?.full_name || userProfile?.profile?.full_name || "",
+    full_name:
+      submission?.data?.full_name || userProfile?.profile?.full_name || "",
     email: submission?.data?.email || userProfile?.profile?.email || "",
     phone: submission?.data?.phone || userProfile?.profile?.phone || "",
     bvn: submission?.data?.bvn || "",
     nin: submission?.data?.nin || "",
     plate_number: submission?.data?.plate_number || "",
     riskScoreFinal: submission?.riskScoreFinal ?? "",
-    premiumAmount: submission?.premiumFinal?.amount ?? ""
+    premiumAmount: submission?.premiumFinal?.amount ?? "",
   };
 
   const editableFields = [
@@ -134,17 +141,20 @@ export default function AdminApplicationDetailPage() {
     { key: "phone", label: "Phone Number" },
     { key: "bvn", label: "BVN" },
     { key: "nin", label: "NIN" },
-    ...(fieldValues.plate_number ? [{ key: "plate_number", label: "Plate Number" }] : []),
+    ...(fieldValues.plate_number
+      ? [{ key: "plate_number", label: "Plate Number" }]
+      : []),
     { key: "riskScoreFinal", label: "Risk Score", type: "number" },
-    { key: "premiumAmount", label: "Amount", type: "number" }
+    { key: "premiumAmount", label: "Amount", type: "number" },
   ];
-  const recipientEmail = submission?.data?.email || userProfile?.profile?.email || "";
+  const recipientEmail =
+    submission?.data?.email || userProfile?.profile?.email || "";
 
   const handleStartEdit = (scope, key, initialValue) => {
     setEditingField(`${scope}:${key}`);
     setDrafts((prev) => ({
       ...prev,
-      [`${scope}:${key}`]: initialValue ?? ""
+      [`${scope}:${key}`]: initialValue ?? "",
     }));
   };
 
@@ -155,11 +165,11 @@ export default function AdminApplicationDetailPage() {
       const editedValue = coerceEditedValue(
         submission,
         key,
-        drafts[`${scope}:${key}`]
+        drafts[`${scope}:${key}`],
       );
       await api.updateUserProfile(
         submission.userId,
-        buildUpdatePayload(submission, key, editedValue)
+        buildUpdatePayload(submission, key, editedValue),
       );
       const fresh = await api.getSubmission(submission._id);
       setSubmission(fresh.submission);
@@ -178,14 +188,14 @@ export default function AdminApplicationDetailPage() {
     try {
       const newUrl = await uploadToCloudinary(file, {
         onProgress: (p) =>
-          setUploadProgress((prev) => ({ ...prev, [fieldKey]: p }))
+          setUploadProgress((prev) => ({ ...prev, [fieldKey]: p })),
       });
       await api.updateUserProfile(submission.userId, {
         submissionId: submission._id,
         user: { workflow: { collected_fields: {} } },
         submission_updates: {},
         url_replacements: { items: [{ from: existingUrl, to: newUrl }] },
-        require_cloudinary: true
+        require_cloudinary: true,
       });
       const fresh = await api.getSubmission(submission._id);
       setSubmission(fresh.submission);
@@ -219,7 +229,7 @@ export default function AdminApplicationDetailPage() {
         submissionId: submission._id,
         user: { workflow: { collected_fields: { [fieldKey]: nextValue } } },
         submission_updates: {},
-        require_cloudinary: true
+        require_cloudinary: true,
       });
       const fresh = await api.getSubmission(submission._id);
       setSubmission(fresh.submission);
@@ -238,10 +248,11 @@ export default function AdminApplicationDetailPage() {
     try {
       const newUrl = await uploadToCloudinary(file, {
         onProgress: (p) =>
-          setUploadProgress((prev) => ({ ...prev, [fieldKey]: p }))
+          setUploadProgress((prev) => ({ ...prev, [fieldKey]: p })),
       });
       const current = submission.data?.[fieldKey];
-      const shouldBeArray = Array.isArray(current) || ARRAY_MEDIA_KEYS.has(fieldKey);
+      const shouldBeArray =
+        Array.isArray(current) || ARRAY_MEDIA_KEYS.has(fieldKey);
       const nextValue = shouldBeArray
         ? [...(Array.isArray(current) ? current : []), newUrl]
         : newUrl;
@@ -250,7 +261,7 @@ export default function AdminApplicationDetailPage() {
         submissionId: submission._id,
         user: { workflow: { collected_fields: { [fieldKey]: nextValue } } },
         submission_updates: {},
-        require_cloudinary: true
+        require_cloudinary: true,
       });
       const fresh = await api.getSubmission(submission._id);
       setSubmission(fresh.submission);
@@ -267,7 +278,11 @@ export default function AdminApplicationDetailPage() {
   };
 
   const handleApprove = async () => {
-    if (!submission || submission.status === "approved" || submission.status === "paid") {
+    if (
+      !submission ||
+      submission.status === "approved" ||
+      submission.status === "paid"
+    ) {
       return;
     }
 
@@ -276,13 +291,45 @@ export default function AdminApplicationDetailPage() {
         premiumFinal: {
           amount: Number(submission.premiumFinal?.amount || 0),
           currency: submission.premiumFinal?.currency || "NGN",
-          period: submission.premiumFinal?.period || "year"
-        }
+          period: submission.premiumFinal?.period || "year",
+        },
       });
       const fresh = await api.getSubmission(submission._id);
       setSubmission(fresh.submission);
     } catch (err) {
       alert(err.message || "Approval failed");
+    }
+  };
+
+  const handleVerifyPayment = async () => {
+    if (!submission) return;
+    if (!submission.paymentReference) {
+      alert("No payment reference found for this submission");
+      return;
+    }
+
+    setVerifyingPayment(true);
+    try {
+      const res = await api.verifyPayment(submission._id);
+      // Prefer the submission returned from the verify endpoint
+      const updated =
+        res?.submission || (await api.getSubmission(submission._id)).submission;
+      setSubmission(updated);
+
+      const status = res?.verify?.data?.status || updated?.paymentStatus;
+      if (
+        status === "success" ||
+        updated?.status === "paid" ||
+        updated?.paymentStatus === "success"
+      ) {
+        alert("Payment verified: SUCCESS — submission marked as paid.");
+      } else {
+        alert("Payment not successful. See updated submission for details.");
+      }
+    } catch (err) {
+      alert(err.message || "Payment verification failed");
+    } finally {
+      setVerifyingPayment(false);
     }
   };
 
@@ -293,7 +340,9 @@ export default function AdminApplicationDetailPage() {
 
     setVerifyingField(fieldKey);
     try {
-      const res = await api.verifySubmissionField(submission._id, { field: fieldKey });
+      const res = await api.verifySubmissionField(submission._id, {
+        field: fieldKey,
+      });
       if (res?.submission) setSubmission(res.submission);
     } catch (err) {
       alert(err.message || "Verification failed");
@@ -350,7 +399,7 @@ export default function AdminApplicationDetailPage() {
       await api.sendEmail({
         to: recipientEmail,
         subject: emailForm.subject.trim(),
-        text: emailForm.text.trim()
+        text: emailForm.text.trim(),
       });
       setShowEmailComposer(false);
       setEmailForm({ subject: "", text: "" });
@@ -416,7 +465,7 @@ export default function AdminApplicationDetailPage() {
                     subject: `Update on your ${submission.type || "insurance"} application`,
                     text:
                       `Hello ${submission.data?.full_name || submission.userId},\n\n` +
-                      "We are reaching out with an update on your insurance application.\n\nRegards,\nInsureMe Admin"
+                      "We are reaching out with an update on your insurance application.\n\nRegards,\nInsureMe Admin",
                   });
                   setShowEmailComposer(true);
                 }}
@@ -427,16 +476,33 @@ export default function AdminApplicationDetailPage() {
               <button
                 type="button"
                 onClick={handleApprove}
-                disabled={submission.status === "approved" || submission.status === "paid"}
+                disabled={
+                  submission.status === "approved" ||
+                  submission.status === "paid"
+                }
                 className={`rounded-full px-4 py-2 text-sm font-medium ${
-                  submission.status === "approved" || submission.status === "paid"
+                  submission.status === "approved" ||
+                  submission.status === "paid"
                     ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
                     : "border border-slate-900 bg-slate-900 text-white"
                 }`}
               >
-                {submission.status === "approved" || submission.status === "paid"
+                {submission.status === "approved" ||
+                submission.status === "paid"
                   ? "Payment Link Sent"
                   : "Approve Application"}
+              </button>
+              <button
+                type="button"
+                onClick={handleVerifyPayment}
+                disabled={verifyingPayment || !submission?.paymentReference}
+                className={`rounded-full px-4 py-2 text-sm font-medium ml-2 ${
+                  !submission?.paymentReference
+                    ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
+                    : "border border-emerald-600 bg-emerald-50 text-emerald-800"
+                }`}
+              >
+                {verifyingPayment ? "Verifying..." : "Verify Payment"}
               </button>
             </div>
           </div>
@@ -447,13 +513,14 @@ export default function AdminApplicationDetailPage() {
                 <ReadOnlyField
                   label={field.label}
                   type={
-                    field.key === "riskScoreFinal" && editingField !== `core:${field.key}`
+                    field.key === "riskScoreFinal" &&
+                    editingField !== `core:${field.key}`
                       ? "text"
                       : field.type
                   }
                   value={
                     editingField === `core:${field.key}`
-                      ? drafts[`core:${field.key}`] ?? ""
+                      ? (drafts[`core:${field.key}`] ?? "")
                       : field.key === "riskScoreFinal"
                         ? formatPercent(fieldValues[field.key])
                         : fieldValues[field.key]
@@ -464,14 +531,16 @@ export default function AdminApplicationDetailPage() {
                     handleStartEdit(
                       "core",
                       field.key,
-                      fieldValues[field.key] ?? submission?.data?.[field.key] ?? ""
+                      fieldValues[field.key] ??
+                        submission?.data?.[field.key] ??
+                        "",
                     )
                   }
                   onCancel={() => setEditingField(null)}
                   onChange={(value) =>
                     setDrafts((prev) => ({
                       ...prev,
-                      [`core:${field.key}`]: value
+                      [`core:${field.key}`]: value,
                     }))
                   }
                   onSave={() => handleSaveField("core", field.key)}
@@ -496,7 +565,7 @@ export default function AdminApplicationDetailPage() {
                     type="text"
                     value={
                       editingField === `data:${field.key}`
-                        ? drafts[`data:${field.key}`] ?? ""
+                        ? (drafts[`data:${field.key}`] ?? "")
                         : formatFieldValue(submission.data?.[field.key])
                     }
                     editing={editingField === `data:${field.key}`}
@@ -507,17 +576,19 @@ export default function AdminApplicationDetailPage() {
                         field.key,
                         (() => {
                           const current = submission.data?.[field.key];
-                          if (typeof current === "boolean") return current ? "true" : "false";
-                          if (current === null || current === undefined) return "";
+                          if (typeof current === "boolean")
+                            return current ? "true" : "false";
+                          if (current === null || current === undefined)
+                            return "";
                           return String(current);
-                        })()
+                        })(),
                       )
                     }
                     onCancel={() => setEditingField(null)}
                     onChange={(value) =>
                       setDrafts((prev) => ({
                         ...prev,
-                        [`data:${field.key}`]: value
+                        [`data:${field.key}`]: value,
                       }))
                     }
                     onSave={() => handleSaveField("data", field.key)}
@@ -547,7 +618,9 @@ export default function AdminApplicationDetailPage() {
                     progress={uploadProgress[field.key]}
                     onEdit={() => setEditingField(editingKey)}
                     onCancel={() => setEditingField(null)}
-                    onFileChange={(file, url) => handleReplaceMedia(field.key, file, url)}
+                    onFileChange={(file, url) =>
+                      handleReplaceMedia(field.key, file, url)
+                    }
                     uploadingLabel={
                       uploadingField === field.key
                         ? `Uploading ${uploadProgress[field.key] ?? 0}%`
@@ -571,24 +644,35 @@ export default function AdminApplicationDetailPage() {
         ) : null}
 
         <Surface className="p-6">
-          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">System Status</p>
+          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+            System Status
+          </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Status</p>
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                Status
+              </p>
               <div className="mt-3">
                 <StatusBadge status={submission.status} />
               </div>
               <p className="mt-3 text-xs text-slate-500">
-                Status is controlled by the system and cannot be edited manually.
+                Status is controlled by the system and cannot be edited
+                manually.
               </p>
             </div>
             <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Quoted Amount</p>
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                Quoted Amount
+              </p>
               <p className="mt-3 text-xl font-semibold text-slate-900">
-                {formatMoney(submission.premiumFinal?.amount, submission.premiumFinal?.currency || "NGN")}
+                {formatMoney(
+                  submission.premiumFinal?.amount,
+                  submission.premiumFinal?.currency || "NGN",
+                )}
               </p>
               <p className="mt-3 text-xs text-slate-500">
-                Payment link sending is disabled after approval or payment confirmation.
+                Payment link sending is disabled after approval or payment
+                confirmation.
               </p>
             </div>
           </div>
@@ -600,12 +684,15 @@ export default function AdminApplicationDetailPage() {
           <Surface className="w-full max-w-2xl p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Email User</p>
+                <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+                  Email User
+                </p>
                 <h3 className="mt-2 text-2xl font-semibold text-slate-950">
                   Send application update
                 </h3>
                 <p className="mt-2 text-sm text-slate-500">
-                  Message will be sent to {recipientEmail || "the email on file"}.
+                  Message will be sent to{" "}
+                  {recipientEmail || "the email on file"}.
                 </p>
               </div>
               <button
@@ -625,7 +712,10 @@ export default function AdminApplicationDetailPage() {
                 <input
                   value={emailForm.subject}
                   onChange={(event) =>
-                    setEmailForm((prev) => ({ ...prev, subject: event.target.value }))
+                    setEmailForm((prev) => ({
+                      ...prev,
+                      subject: event.target.value,
+                    }))
                   }
                   className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700"
                 />
@@ -638,7 +728,10 @@ export default function AdminApplicationDetailPage() {
                   rows="7"
                   value={emailForm.text}
                   onChange={(event) =>
-                    setEmailForm((prev) => ({ ...prev, text: event.target.value }))
+                    setEmailForm((prev) => ({
+                      ...prev,
+                      text: event.target.value,
+                    }))
                   }
                   className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700"
                 />

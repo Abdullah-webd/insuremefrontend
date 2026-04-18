@@ -1,5 +1,10 @@
-import React from "react";
-import { STATUS_STYLES, formatDate, isDocumentUrl, isVideoUrl } from "../utils/admin.js";
+import React, { useState, useEffect } from "react";
+import {
+  STATUS_STYLES,
+  formatDate,
+  isDocumentUrl,
+  isVideoUrl,
+} from "../utils/admin.js";
 
 function normalizeDocumentUrl(url) {
   try {
@@ -7,8 +12,10 @@ function normalizeDocumentUrl(url) {
     const lower = url.toLowerCase();
     if (!lower.includes(".pdf")) return url;
     if (url.includes("/raw/upload/")) return url;
-    if (url.includes("/image/upload/")) return url.replace("/image/upload/", "/raw/upload/");
-    if (url.includes("/auto/upload/")) return url.replace("/auto/upload/", "/raw/upload/");
+    if (url.includes("/image/upload/"))
+      return url.replace("/image/upload/", "/raw/upload/");
+    if (url.includes("/auto/upload/"))
+      return url.replace("/auto/upload/", "/raw/upload/");
     // fallback: if upload segment exists, try to switch the resource type
     return url.replace("/upload/", "/raw/upload/");
   } catch (err) {
@@ -31,10 +38,16 @@ export function SectionHeading({ eyebrow, title, description, action }) {
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
         {eyebrow ? (
-          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">{eyebrow}</p>
+          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">
+            {eyebrow}
+          </p>
         ) : null}
-        <h2 className="mt-2 font-serif text-4xl leading-none text-slate-950">{title}</h2>
-        {description ? <p className="mt-3 max-w-3xl text-sm text-slate-500">{description}</p> : null}
+        <h2 className="mt-2 font-serif text-4xl leading-none text-slate-950">
+          {title}
+        </h2>
+        {description ? (
+          <p className="mt-3 max-w-3xl text-sm text-slate-500">{description}</p>
+        ) : null}
       </div>
       {action}
     </div>
@@ -43,7 +56,9 @@ export function SectionHeading({ eyebrow, title, description, action }) {
 
 export function Surface({ children, className = "" }) {
   return (
-    <div className={`rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.05)] ${className}`}>
+    <div
+      className={`rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.05)] ${className}`}
+    >
       {children}
     </div>
   );
@@ -52,7 +67,9 @@ export function Surface({ children, className = "" }) {
 export function StatCard({ label, value, note, valueClassName = "" }) {
   return (
     <Surface className="p-5">
-      <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{label}</p>
+      <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+        {label}
+      </p>
       <p
         className={`mt-4 text-3xl font-semibold text-slate-950 ${valueClassName}`}
       >
@@ -72,7 +89,7 @@ export function ReadOnlyField({
   onCancel,
   onSave,
   onChange,
-  type = "text"
+  type = "text",
 }) {
   return (
     <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-[0_14px_35px_rgba(15,23,42,0.04)]">
@@ -142,7 +159,7 @@ export function MediaCard({
   onPreview,
   onDelete,
   onAddFile,
-  accept = "image/*,video/*"
+  accept = "image/*,video/*",
 }) {
   const items = value ? (Array.isArray(value) ? value : [value]) : [];
   const numericProgress =
@@ -154,9 +171,13 @@ export function MediaCard({
     <Surface className="p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{title}</p>
+          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+            {title}
+          </p>
           <p className="mt-1 text-sm text-slate-500">
-            {items.length ? `${items.length} media item${items.length > 1 ? "s" : ""}` : "No upload yet"}
+            {items.length
+              ? `${items.length} media item${items.length > 1 ? "s" : ""}`
+              : "No upload yet"}
           </p>
         </div>
         {uploading ? (
@@ -222,7 +243,10 @@ export function MediaCard({
           </div>
         ) : (
           items.map((item) => (
-            <div key={item} className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
+            <div
+              key={item}
+              className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50"
+            >
               {isVideoUrl(item) ? (
                 <button
                   type="button"
@@ -252,7 +276,9 @@ export function MediaCard({
                       <path d="M14 2v6h6" />
                     </svg>
                   </div>
-                  <p className="text-sm font-semibold text-slate-900">Document</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    Document
+                  </p>
                   <a
                     href={normalizeDocumentUrl(item)}
                     target="_blank"
@@ -268,7 +294,11 @@ export function MediaCard({
                   onClick={() => onPreview?.(item)}
                   className="block w-full"
                 >
-                  <img src={item} alt={title} className="h-64 w-full object-cover" />
+                  <img
+                    src={item}
+                    alt={title}
+                    className="h-64 w-full object-cover"
+                  />
                 </button>
               )}
               <div className="border-t border-slate-200 p-3">
@@ -317,7 +347,9 @@ export function MediaCard({
                 </div>
                 {editing ? (
                   <label className="mt-3 inline-flex cursor-pointer items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">
-                    {uploading ? `Uploading ${numericProgress ?? 0}%` : uploadingLabel || "Replace media"}
+                    {uploading
+                      ? `Uploading ${numericProgress ?? 0}%`
+                      : uploadingLabel || "Replace media"}
                     <input
                       type="file"
                       accept={accept}
@@ -357,6 +389,42 @@ export function MediaCard({
 export function MediaLightbox({ item, title, onClose }) {
   if (!item) return null;
 
+  const [resolvedUrl, setResolvedUrl] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function probeUrl() {
+      setResolvedUrl(null);
+      if (!item) return;
+      try {
+        const candidates = isDocumentUrl(item)
+          ? [normalizeDocumentUrl(item), item]
+          : [item];
+        for (const c of candidates) {
+          if (cancelled) return;
+          try {
+            const res = await fetch(c, { method: "HEAD" });
+            if (res && res.ok) {
+              setResolvedUrl(c);
+              return;
+            }
+          } catch (e) {
+            // ignore and try next
+          }
+        }
+        setResolvedUrl(item);
+      } catch (e) {
+        setResolvedUrl(item);
+      }
+    }
+    probeUrl();
+    return () => {
+      cancelled = true;
+    };
+  }, [item]);
+
+  const srcToUse = resolvedUrl || item;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
       <div className="relative max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-[32px] border border-slate-700 bg-slate-950 shadow-[0_30px_100px_rgba(15,23,42,0.55)]">
@@ -383,7 +451,7 @@ export function MediaLightbox({ item, title, onClose }) {
         <div className="flex max-h-[90vh] items-center justify-center bg-slate-950 p-6">
           {isVideoUrl(item) ? (
             <video
-              src={item}
+              src={srcToUse}
               controls
               autoPlay
               className="max-h-[78vh] w-full rounded-2xl bg-black object-contain"
@@ -392,15 +460,19 @@ export function MediaLightbox({ item, title, onClose }) {
             item.toLowerCase().endsWith(".pdf") ? (
               <iframe
                 title={title || "Document preview"}
-                src={normalizeDocumentUrl(item)}
+                src={srcToUse}
                 className="h-[78vh] w-full rounded-2xl bg-white"
               />
             ) : (
               <div className="w-full rounded-2xl bg-white p-10 text-center">
-                <p className="text-lg font-semibold text-slate-900">Document preview</p>
-                <p className="mt-2 text-sm text-slate-600">Open in a new tab to view.</p>
+                <p className="text-lg font-semibold text-slate-900">
+                  Document preview
+                </p>
+                <p className="mt-2 text-sm text-slate-600">
+                  Open in a new tab to view.
+                </p>
                 <a
-                  href={item}
+                  href={srcToUse}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-6 inline-flex rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
@@ -411,7 +483,7 @@ export function MediaLightbox({ item, title, onClose }) {
             )
           ) : (
             <img
-              src={item}
+              src={srcToUse}
               alt={title || "Media preview"}
               className="max-h-[78vh] w-full rounded-2xl object-contain"
             />
@@ -420,7 +492,7 @@ export function MediaLightbox({ item, title, onClose }) {
 
         <div className="border-t border-slate-800 px-6 py-4 text-sm text-slate-300">
           <p className="font-medium text-white">{title || "Media preview"}</p>
-          <p className="mt-1 truncate text-slate-400">{item}</p>
+          <p className="mt-1 truncate text-slate-400">{srcToUse}</p>
         </div>
       </div>
     </div>
@@ -431,19 +503,33 @@ export function InfoStrip({ submission }) {
   return (
     <div className="grid gap-3 rounded-[28px] border border-slate-200 bg-[linear-gradient(145deg,_#f8fbff,_#ffffff)] p-5 md:grid-cols-4">
       <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Submission</p>
-        <p className="mt-2 text-sm font-medium text-slate-700">{submission?.type || "-"}</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+          Submission
+        </p>
+        <p className="mt-2 text-sm font-medium text-slate-700">
+          {submission?.type || "-"}
+        </p>
       </div>
       <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">User</p>
-        <p className="mt-2 text-sm font-medium text-slate-700">{submission?.userId || "-"}</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+          User
+        </p>
+        <p className="mt-2 text-sm font-medium text-slate-700">
+          {submission?.userId || "-"}
+        </p>
       </div>
       <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Submitted</p>
-        <p className="mt-2 text-sm font-medium text-slate-700">{formatDate(submission?.submittedAt)}</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+          Submitted
+        </p>
+        <p className="mt-2 text-sm font-medium text-slate-700">
+          {formatDate(submission?.submittedAt)}
+        </p>
       </div>
       <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Status</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+          Status
+        </p>
         <div className="mt-2">
           <StatusBadge status={submission?.status} />
         </div>

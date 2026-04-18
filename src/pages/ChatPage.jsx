@@ -14,6 +14,29 @@ export default function ChatPage() {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!userId) return;
+      try {
+        const res = await api.getChatHistory(userId);
+        if (!mounted) return;
+        const msgs = (res.messages || []).map((m, i) => ({
+          id: `${m.who || 'bot'}-${i}-${Date.parse(m.time) || i}`,
+          who: m.who || "bot",
+          text: m.text || "",
+          time: m.time ? new Date(m.time) : new Date()
+        }));
+        setMessages(msgs);
+      } catch (err) {
+        // ignore history load errors
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
+
   const sendMessage = async (content) => {
     setMessages((prev) => [
       ...prev,
@@ -37,9 +60,9 @@ export default function ChatPage() {
   };
 
   const handleSend = async () => {
-    if (uploading) return;
+    if (loading || uploading) return;
     if (imageUrl) {
-      await sendMessage(`IMAGE_URL: ${imageUrl}`);
+      await sendMessage(`IMAGE: ${imageUrl}`);
       setImageUrl(null);
       return;
     }
@@ -50,6 +73,7 @@ export default function ChatPage() {
   };
 
   const handleUpload = async (file) => {
+    if (loading) return;
     setUploading(true);
     try {
       const url = await uploadToCloudinary(file);
@@ -107,7 +131,7 @@ export default function ChatPage() {
             >
               <div>{m.text}</div>
               <div className="text-[10px] opacity-60 mt-1">
-                {m.time.toLocaleTimeString()}
+                {m.time instanceof Date ? m.time.toLocaleTimeString() : new Date(m.time).toLocaleTimeString()}
               </div>
             </div>
           ))}
@@ -121,7 +145,7 @@ export default function ChatPage() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            disabled={Boolean(imageUrl)}
+            disabled={Boolean(imageUrl) || loading || uploading}
             className="flex-1 min-w-[200px] px-3 py-2 border border-slate-200 rounded-xl text-sm"
             placeholder={imageUrl ? "Image selected. Send to continue." : "Type your message"}
           />
@@ -132,6 +156,7 @@ export default function ChatPage() {
               const file = e.target.files?.[0];
               if (file) handleUpload(file);
             }}
+            disabled={uploading || loading}
             className="text-sm"
           />
           <button
@@ -144,7 +169,7 @@ export default function ChatPage() {
           <button
             type="button"
             onClick={handleSend}
-            disabled={uploading}
+            disabled={uploading || loading || (!input.trim() && !imageUrl)}
             className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm"
           >
             Send

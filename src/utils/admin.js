@@ -11,6 +11,7 @@ export const STATUS_STYLES = {
 export const ADMIN_NAV_ITEMS = [
   { to: "/admin/applications", label: "Applications", icon: "folder" },
   { to: "/admin/claims", label: "Claims", icon: "shield" },
+  { to: "/admin/requests", label: "Requests", icon: "inbox" },
   { to: "/admin/users", label: "Users", icon: "users" },
   { to: "/admin/analytics", label: "Analytics", icon: "chart" },
   { to: "/chat", label: "User Chat", icon: "chat" }
