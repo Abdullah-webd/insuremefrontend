@@ -26,7 +26,9 @@ export default function AdminRequestsPage() {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Requests</h2>
-        <div className="text-sm text-slate-500">{loading ? "Loading..." : `${items.length} requests`}</div>
+        <div className="text-sm text-slate-500">
+          {loading ? "Loading..." : `${items.length} requests`}
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -37,8 +39,13 @@ export default function AdminRequestsPage() {
             className="block p-4 border rounded-lg hover:shadow"
           >
             <div className="font-medium">{r.title || "User request"}</div>
-            <div className="text-xs text-slate-500">{r.userName || r.userId} • {new Date(r.createdAt).toLocaleString()}</div>
-            <div className="mt-2 text-sm text-slate-700">{r.message ? r.message.slice(0, 180) : "(no message)"}</div>
+            <div className="text-xs text-slate-500">
+              {r.userName || r.userId} •{" "}
+              {new Date(r.createdAt).toLocaleString()}
+            </div>
+            <div className="mt-2 text-sm text-slate-700">
+              {r.message ? r.message.slice(0, 180) : "(no message)"}
+            </div>
           </Link>
         ))}
       </div>

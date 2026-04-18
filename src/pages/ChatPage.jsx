@@ -11,7 +11,10 @@ export default function ChatPage() {
   const logRef = useRef(null);
 
   useEffect(() => {
-    logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
+    logRef.current?.scrollTo({
+      top: logRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages]);
 
   useEffect(() => {
@@ -22,10 +25,10 @@ export default function ChatPage() {
         const res = await api.getChatHistory(userId);
         if (!mounted) return;
         const msgs = (res.messages || []).map((m, i) => ({
-          id: `${m.who || 'bot'}-${i}-${Date.parse(m.time) || i}`,
+          id: `${m.who || "bot"}-${i}-${Date.parse(m.time) || i}`,
           who: m.who || "bot",
           text: m.text || "",
-          time: m.time ? new Date(m.time) : new Date()
+          time: m.time ? new Date(m.time) : new Date(),
         }));
         setMessages(msgs);
       } catch (err) {
@@ -40,19 +43,24 @@ export default function ChatPage() {
   const sendMessage = async (content) => {
     setMessages((prev) => [
       ...prev,
-      { id: Date.now(), who: "user", text: content, time: new Date() }
+      { id: Date.now(), who: "user", text: content, time: new Date() },
     ]);
     setLoading(true);
     try {
       const res = await api.sendChat(userId, content);
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + 1, who: "bot", text: res.reply, time: new Date() }
+        { id: Date.now() + 1, who: "bot", text: res.reply, time: new Date() },
       ]);
     } catch (err) {
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + 2, who: "bot", text: err.message || "Error", time: new Date() }
+        {
+          id: Date.now() + 2,
+          who: "bot",
+          text: err.message || "Error",
+          time: new Date(),
+        },
       ]);
     } finally {
       setLoading(false);
@@ -86,7 +94,8 @@ export default function ChatPage() {
   };
 
   const handleSpeech = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Speech recognition not supported in this browser.");
       return;
@@ -104,7 +113,7 @@ export default function ChatPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold">User Chat</h2>
-        <p className="text-sm text-slate-500">Chat with the InsureMe assistant</p>
+        <p className="text-sm text-red-600">Chat with the Heirs Insurance assistant</p>
       </div>
 
       <div className="border border-slate-200 rounded-2xl shadow-card bg-white">
@@ -116,7 +125,9 @@ export default function ChatPage() {
             placeholder="user_123"
           />
           {imageUrl && (
-            <span className="text-xs text-emerald-600">Image ready to send</span>
+            <span className="text-xs text-emerald-600">
+              Image ready to send
+            </span>
           )}
         </div>
         <div ref={logRef} className="p-4 h-[55vh] overflow-auto space-y-4">
@@ -124,14 +135,16 @@ export default function ChatPage() {
             <div
               key={m.id}
               className={`max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-card ${
-                m.who === "user"
-                  ? "ml-auto bg-slate-900 text-white"
-                  : "bg-slate-50 border border-slate-200"
-              }`}
+                  m.who === "user"
+                    ? "ml-auto bg-red-700 text-white"
+                    : "bg-slate-50 border border-slate-200"
+                }`}
             >
               <div>{m.text}</div>
               <div className="text-[10px] opacity-60 mt-1">
-                {m.time instanceof Date ? m.time.toLocaleTimeString() : new Date(m.time).toLocaleTimeString()}
+                {m.time instanceof Date
+                  ? m.time.toLocaleTimeString()
+                  : new Date(m.time).toLocaleTimeString()}
               </div>
             </div>
           ))}
@@ -147,7 +160,11 @@ export default function ChatPage() {
             onChange={(e) => setInput(e.target.value)}
             disabled={Boolean(imageUrl) || loading || uploading}
             className="flex-1 min-w-[200px] px-3 py-2 border border-slate-200 rounded-xl text-sm"
-            placeholder={imageUrl ? "Image selected. Send to continue." : "Type your message"}
+            placeholder={
+              imageUrl
+                ? "Image selected. Send to continue."
+                : "Type your message"
+            }
           />
           <input
             type="file"
@@ -170,7 +187,7 @@ export default function ChatPage() {
             type="button"
             onClick={handleSend}
             disabled={uploading || loading || (!input.trim() && !imageUrl)}
-            className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm"
+            className="px-4 py-2 rounded-xl bg-red-700 text-white text-sm"
           >
             Send
           </button>

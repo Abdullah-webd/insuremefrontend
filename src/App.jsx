@@ -32,7 +32,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/admin/applications" replace />} />
+        <Route
+          path="/"
+          element={<Navigate to="/admin/applications" replace />}
+        />
         <Route path="/login" element={<LoginPage />} />
 
         <Route
@@ -43,9 +46,15 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/admin/applications" replace />} />
+          <Route
+            index
+            element={<Navigate to="/admin/applications" replace />}
+          />
           <Route path="applications" element={<AdminApplicationsPage />} />
-          <Route path="applications/:id" element={<AdminApplicationDetailPage />} />
+          <Route
+            path="applications/:id"
+            element={<AdminApplicationDetailPage />}
+          />
           <Route path="claims" element={<AdminClaimsPage />} />
           <Route path="claims/:id" element={<AdminClaimDetailPage />} />
           <Route path="requests" element={<AdminRequestsPage />} />
@@ -64,7 +73,10 @@ export default function App() {
           }
         />
 
-        <Route path="*" element={<Navigate to="/admin/applications" replace />} />
+        <Route
+          path="*"
+          element={<Navigate to="/admin/applications" replace />}
+        />
       </Routes>
     </BrowserRouter>
   );

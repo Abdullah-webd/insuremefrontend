@@ -463,13 +463,13 @@ export default function AdminApplicationDetailPage() {
                 onClick={() => {
                   setEmailForm({
                     subject: `Update on your ${submission.type || "insurance"} application`,
-                    text:
+                      text:
                       `Hello ${submission.data?.full_name || submission.userId},\n\n` +
-                      "We are reaching out with an update on your insurance application.\n\nRegards,\nInsureMe Admin",
+                      "We are reaching out with an update on your insurance application.\n\nRegards,\nHeirs Insurance Admin",
                   });
                   setShowEmailComposer(true);
                 }}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+                className="rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-800"
               >
                 Send Email
               </button>
@@ -484,7 +484,7 @@ export default function AdminApplicationDetailPage() {
                   submission.status === "approved" ||
                   submission.status === "paid"
                     ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
-                    : "border border-slate-900 bg-slate-900 text-white"
+                    : "border border-red-800 bg-red-800 text-white"
                 }`}
               >
                 {submission.status === "approved" ||

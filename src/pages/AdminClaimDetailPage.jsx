@@ -95,12 +95,12 @@ export default function AdminClaimDetailPage() {
 
       const recipientEmail = claim?.data?.email || userProfile?.profile?.email || "";
       if (recipientEmail) {
-        await api.sendEmail({
+            await api.sendEmail({
           to: recipientEmail,
           subject: "Your insurance claim has been approved",
           text:
             `Hello ${resolvedName},\n\n` +
-            "Your claim has been approved by our admin team. We will contact you shortly with the next payout steps.\n\nRegards,\nInsureMe Admin"
+            "Your claim has been approved by our admin team. We will contact you shortly with the next payout steps.\n\nRegards,\nHeirs Insurance Admin"
         });
       }
 

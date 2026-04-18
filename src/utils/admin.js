@@ -5,7 +5,7 @@ export const STATUS_STYLES = {
   approved: "border-sky-200 bg-sky-50 text-sky-800",
   paid: "border-emerald-200 bg-emerald-50 text-emerald-800",
   rejected: "border-rose-200 bg-rose-50 text-rose-800",
-  pending: "border-slate-200 bg-slate-100 text-slate-700"
+  pending: "border-slate-200 bg-slate-100 text-slate-700",
 };
 
 export const ADMIN_NAV_ITEMS = [
@@ -14,13 +14,11 @@ export const ADMIN_NAV_ITEMS = [
   { to: "/admin/requests", label: "Requests", icon: "inbox" },
   { to: "/admin/users", label: "Users", icon: "users" },
   { to: "/admin/analytics", label: "Analytics", icon: "chart" },
-  { to: "/chat", label: "User Chat", icon: "chat" }
+  { to: "/chat", label: "User Chat", icon: "chat" },
 ];
 
 export function titleCase(text = "") {
-  return text
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return text.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export function formatDate(value) {
@@ -31,7 +29,7 @@ export function formatDate(value) {
     : date.toLocaleDateString(undefined, {
         year: "numeric",
         month: "short",
-        day: "numeric"
+        day: "numeric",
       });
 }
 
@@ -40,7 +38,7 @@ export function formatMoney(amount, currency = "NGN") {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(Number(amount));
 }
 
@@ -99,7 +97,7 @@ export function getApplicationFields(submission) {
 
   return {
     preset,
-    fields: [...preset.fields, ...extraFields]
+    fields: [...preset.fields, ...extraFields],
   };
 }
 
@@ -118,7 +116,7 @@ export function getPrimaryMediaInfo(submission) {
     return {
       key: "profile_image",
       label: "Profile Image",
-      value: data.profile_image
+      value: data.profile_image,
     };
   }
 
@@ -126,7 +124,7 @@ export function getPrimaryMediaInfo(submission) {
     return {
       key: "car_image",
       label: "Car Image",
-      value: data.car_image
+      value: data.car_image,
     };
   }
 
@@ -134,7 +132,7 @@ export function getPrimaryMediaInfo(submission) {
     return {
       key: "property_images",
       label: "Property Image",
-      value: data.property_images[0]
+      value: data.property_images[0],
     };
   }
 
@@ -142,14 +140,14 @@ export function getPrimaryMediaInfo(submission) {
     return {
       key: "evidence",
       label: "Evidence Preview",
-      value: data.evidence[0]
+      value: data.evidence[0],
     };
   }
 
   return {
     key: null,
     label: "Media Preview",
-    value: null
+    value: null,
   };
 }
 
