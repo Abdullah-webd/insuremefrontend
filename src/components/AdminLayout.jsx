@@ -10,7 +10,7 @@ function Icon({ kind, className = "h-5 w-5" }) {
     stroke: "currentColor",
     strokeWidth: "1.8",
     strokeLinecap: "round",
-    strokeLinejoin: "round"
+    strokeLinejoin: "round",
   };
 
   if (kind === "folder") {
@@ -71,8 +71,12 @@ export default function AdminLayout() {
         <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-[280px] shrink-0 overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/85 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur xl:block">
           <div className="flex h-full flex-col">
             <div className="rounded-[28px] border border-red-200 bg-red-700 p-5 text-white">
-              <p className="text-xs uppercase tracking-[0.35em] text-red-100">Heirs Insurance</p>
-              <h1 className="mt-3 font-serif text-3xl leading-none">Admin Console</h1>
+              <p className="text-xs uppercase tracking-[0.35em] text-red-100">
+                Heirs Insurance
+              </p>
+              <h1 className="mt-3 font-serif text-3xl leading-none">
+                Admin Console
+              </h1>
               <p className="mt-3 text-sm text-red-100">
                 Underwriting, approvals, and claim follow-up in one place.
               </p>
@@ -87,7 +91,7 @@ export default function AdminLayout() {
                     `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition ${
                       isActive
                         ? "bg-red-800 text-white shadow-[0_16px_30px_rgba(139,0,0,0.16)]"
-                          : "text-slate-600 hover:bg-red-50 hover:text-red-800"
+                        : "text-slate-600 hover:bg-red-50 hover:text-red-800"
                     }`
                   }
                 >
@@ -98,7 +102,9 @@ export default function AdminLayout() {
             </nav>
 
             <div className="mt-auto rounded-[28px] border border-red-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-[0.28em] text-red-400">Admin Access</p>
+              <p className="text-xs uppercase tracking-[0.28em] text-red-400">
+                Admin Access
+              </p>
               <p className="mt-2 text-sm text-red-600">
                 Signed in with the demo admin workspace.
               </p>
@@ -120,8 +126,12 @@ export default function AdminLayout() {
           <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur sm:p-6">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4 xl:hidden">
               <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-red-400">Heirs Insurance</p>
-                <h1 className="mt-2 font-serif text-3xl leading-none">Admin Console</h1>
+                <p className="text-xs uppercase tracking-[0.35em] text-red-400">
+                  Heirs Insurance
+                </p>
+                <h1 className="mt-2 font-serif text-3xl leading-none">
+                  Admin Console
+                </h1>
               </div>
               <button
                 type="button"
@@ -144,7 +154,7 @@ export default function AdminLayout() {
                     `inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${
                       isActive
                         ? "border-red-800 bg-red-800 text-white"
-                          : "border-slate-200 bg-white text-slate-600"
+                        : "border-slate-200 bg-white text-slate-600"
                     }`
                   }
                 >

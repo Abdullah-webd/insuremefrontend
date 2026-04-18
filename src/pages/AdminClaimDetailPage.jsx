@@ -6,7 +6,7 @@ import {
   MediaLightbox,
   SectionHeading,
   StatusBadge,
-  Surface
+  Surface,
 } from "../components/AdminUi.jsx";
 import { api } from "../services/api.js";
 import {
@@ -14,7 +14,7 @@ import {
   formatFieldValue,
   getApplicationFields,
   getPrimaryMediaInfo,
-  isActivePolicy
+  isActivePolicy,
 } from "../utils/admin.js";
 
 export default function AdminClaimDetailPage() {
@@ -38,13 +38,13 @@ export default function AdminClaimDetailPage() {
         if (response.submission?.userId) {
           const [userResponse, submissionsResponse] = await Promise.all([
             api.getUser(response.submission.userId),
-            api.getSubmissions()
+            api.getSubmissions(),
           ]);
           setUserProfile(userResponse.user);
           setAllSubmissions(
             (submissionsResponse.items || []).filter(
-              (item) => item.userId === response.submission.userId
-            )
+              (item) => item.userId === response.submission.userId,
+            ),
           );
         }
       } catch (err) {
@@ -62,7 +62,8 @@ export default function AdminClaimDetailPage() {
   const primaryMedia = getPrimaryMediaInfo(claim);
   const activePolicies = allSubmissions.filter((item) => isActivePolicy(item));
   const supportingSubmission = allSubmissions.find(
-    (item) => item._id !== claim?._id && !item.type?.toLowerCase().includes("claim")
+    (item) =>
+      item._id !== claim?._id && !item.type?.toLowerCase().includes("claim"),
   );
   const resolvedName =
     claim?.data?.full_name ||
@@ -77,7 +78,8 @@ export default function AdminClaimDetailPage() {
     "-";
 
   const handleApproveClaim = async () => {
-    if (!claim || claim.status === "approved" || claim.status === "paid") return;
+    if (!claim || claim.status === "approved" || claim.status === "paid")
+      return;
 
     setApproving(true);
     try {
@@ -88,19 +90,21 @@ export default function AdminClaimDetailPage() {
           status: "approved",
           adminNotes: {
             ...(claim.adminNotes || {}),
-            claim_note: "Claim approved. Customer should be contacted for payout follow-up."
-          }
-        }
+            claim_note:
+              "Claim approved. Customer should be contacted for payout follow-up.",
+          },
+        },
       });
 
-      const recipientEmail = claim?.data?.email || userProfile?.profile?.email || "";
+      const recipientEmail =
+        claim?.data?.email || userProfile?.profile?.email || "";
       if (recipientEmail) {
-            await api.sendEmail({
+        await api.sendEmail({
           to: recipientEmail,
           subject: "Your insurance claim has been approved",
           text:
             `Hello ${resolvedName},\n\n` +
-            "Your claim has been approved by our admin team. We will contact you shortly with the next payout steps.\n\nRegards,\nHeirs Insurance Admin"
+            "Your claim has been approved by our admin team. We will contact you shortly with the next payout steps.\n\nRegards,\nHeirs Insurance Admin",
         });
       }
 
@@ -151,7 +155,9 @@ export default function AdminClaimDetailPage() {
       <Surface className="p-6 lg:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Claim Review</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+              Claim Review
+            </p>
             <h3 className="mt-2 text-2xl font-semibold text-slate-950">
               Incident and claimant details
             </h3>
@@ -161,9 +167,15 @@ export default function AdminClaimDetailPage() {
             <button
               type="button"
               onClick={handleApproveClaim}
-              disabled={approving || claim.status === "approved" || claim.status === "paid"}
+              disabled={
+                approving ||
+                claim.status === "approved" ||
+                claim.status === "paid"
+              }
               className={`rounded-full px-4 py-2 text-sm font-medium ${
-                approving || claim.status === "approved" || claim.status === "paid"
+                approving ||
+                claim.status === "approved" ||
+                claim.status === "paid"
                   ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
                   : "border border-slate-900 bg-slate-900 text-white"
               }`}
@@ -181,10 +193,13 @@ export default function AdminClaimDetailPage() {
           {[
             { label: "Full Name", value: resolvedName },
             { label: "Phone Number", value: resolvedPhone },
-            { label: "Claim Type", value: claim.data?.policy_type || claim.type },
+            {
+              label: "Claim Type",
+              value: claim.data?.policy_type || claim.type,
+            },
             { label: "Incident Date", value: claim.data?.incident_date },
             { label: "Submitted", value: formatDate(claim.submittedAt) },
-            { label: "User ID", value: claim.userId }
+            { label: "User ID", value: claim.userId },
           ].map((item) => (
             <div
               key={item.label}
@@ -202,7 +217,9 @@ export default function AdminClaimDetailPage() {
       </Surface>
 
       <Surface className="p-6">
-        <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Claim Data</p>
+        <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+          Claim Data
+        </p>
         <div className="mt-6 grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
           {fields
             .filter((field) => !field.media)
@@ -228,11 +245,15 @@ export default function AdminClaimDetailPage() {
             <button
               type="button"
               onClick={() =>
-                setPreviewMedia({ item: primaryMedia.value, title: primaryMedia.label })
+                setPreviewMedia({
+                  item: primaryMedia.value,
+                  title: primaryMedia.label,
+                })
               }
               className="block w-full"
             >
-              {primaryMedia.value.includes("/video/") || primaryMedia.value.endsWith(".mp4") ? (
+              {primaryMedia.value.includes("/video/") ||
+              primaryMedia.value.endsWith(".mp4") ? (
                 <video
                   src={primaryMedia.value}
                   muted
@@ -240,7 +261,11 @@ export default function AdminClaimDetailPage() {
                   className="h-80 w-full bg-slate-950 object-cover"
                 />
               ) : (
-                <img src={primaryMedia.value} alt={primaryMedia.label} className="h-80 w-full object-cover" />
+                <img
+                  src={primaryMedia.value}
+                  alt={primaryMedia.label}
+                  className="h-80 w-full object-cover"
+                />
               )}
             </button>
           ) : (
@@ -249,7 +274,9 @@ export default function AdminClaimDetailPage() {
             </div>
           )}
           <div className="border-t border-slate-200 p-5">
-            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{primaryMedia.label}</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+              {primaryMedia.label}
+            </p>
             <p className="mt-2 text-sm text-slate-500">
               {primaryMedia.value || "No primary claim media is attached yet"}
             </p>
@@ -261,22 +288,34 @@ export default function AdminClaimDetailPage() {
           value={evidence}
           disabled
           editing={false}
-          onPreview={(item) => setPreviewMedia({ item, title: "Claim Evidence" })}
+          onPreview={(item) =>
+            setPreviewMedia({ item, title: "Claim Evidence" })
+          }
         />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Surface className="p-6">
-          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">User Profile Snapshot</p>
+          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+            User Profile Snapshot
+          </p>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             {[
               { label: "User ID", value: claim.userId },
               { label: "Registered Name", value: resolvedName },
               { label: "Registered Phone", value: resolvedPhone },
-              { label: "Created At", value: formatDate(userProfile?.createdAt) }
+              {
+                label: "Created At",
+                value: formatDate(userProfile?.createdAt),
+              },
             ].map((item) => (
-              <div key={item.label} className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-400">{item.label}</p>
+              <div
+                key={item.label}
+                className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4"
+              >
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                  {item.label}
+                </p>
                 <p className="mt-3 text-sm font-semibold text-slate-800">
                   {formatFieldValue(item.value)}
                 </p>
@@ -286,13 +325,19 @@ export default function AdminClaimDetailPage() {
         </Surface>
 
         <Surface className="p-6">
-          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Active Policies</p>
+          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+            Active Policies
+          </p>
           <div className="mt-5 space-y-3">
             {activePolicies.map((item) => (
-              <div key={item._id} className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
+              <div
+                key={item._id}
+                className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4"
+              >
                 <p className="font-semibold text-slate-900">{item.type}</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  {item.data?.full_name || item.userId} · {formatDate(item.submittedAt)}
+                  {item.data?.full_name || item.userId} ·{" "}
+                  {formatDate(item.submittedAt)}
                 </p>
               </div>
             ))}

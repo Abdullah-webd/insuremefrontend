@@ -463,7 +463,7 @@ export default function AdminApplicationDetailPage() {
                 onClick={() => {
                   setEmailForm({
                     subject: `Update on your ${submission.type || "insurance"} application`,
-                      text:
+                    text:
                       `Hello ${submission.data?.full_name || submission.userId},\n\n` +
                       "We are reaching out with an update on your insurance application.\n\nRegards,\nHeirs Insurance Admin",
                   });

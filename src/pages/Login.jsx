@@ -2,7 +2,7 @@
 
 const DUMMY = {
   email: "admin@heirsinsurance.com",
-  password: "Heirs123"
+  password: "Heirs123",
 };
 
 export default function LoginPage() {
@@ -25,11 +25,15 @@ export default function LoginPage() {
       <div className="w-full max-w-md border border-slate-200 rounded-2xl shadow-card p-6 bg-white">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-slate-900">Admin Login</h1>
-          <p className="text-sm text-red-600">Sign in to manage Heirs Insurance</p>
+          <p className="text-sm text-red-600">
+            Sign in to manage Heirs Insurance
+          </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-slate-600">Email</label>
+            <label className="text-xs font-semibold text-slate-600">
+              Email
+            </label>
             <input
               type="email"
               value={email}
@@ -39,7 +43,9 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-600">Password</label>
+            <label className="text-xs font-semibold text-slate-600">
+              Password
+            </label>
             <input
               type="password"
               value={password}

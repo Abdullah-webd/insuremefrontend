@@ -113,7 +113,9 @@ export default function ChatPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold">User Chat</h2>
-        <p className="text-sm text-red-600">Chat with the Heirs Insurance assistant</p>
+        <p className="text-sm text-red-600">
+          Chat with the Heirs Insurance assistant
+        </p>
       </div>
 
       <div className="border border-slate-200 rounded-2xl shadow-card bg-white">
@@ -135,10 +137,10 @@ export default function ChatPage() {
             <div
               key={m.id}
               className={`max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-card ${
-                  m.who === "user"
-                    ? "ml-auto bg-red-700 text-white"
-                    : "bg-slate-50 border border-slate-200"
-                }`}
+                m.who === "user"
+                  ? "ml-auto bg-red-700 text-white"
+                  : "bg-slate-50 border border-slate-200"
+              }`}
             >
               <div>{m.text}</div>
               <div className="text-[10px] opacity-60 mt-1">
