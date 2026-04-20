@@ -29,13 +29,13 @@ export default function AdminUsersPage() {
               to={`/admin/users/${user.userId}`}
               className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5"
             >
-              <p
-                className="text-base font-semibold text-slate-900 sm:text-lg break-all"
-                title={user.userId}
-              >
-                {user.userId}
+              <p className="text-base font-semibold text-slate-900 sm:text-lg break-all">
+                {user.profile?.full_name || "User " + user.userId.slice(-4)}
               </p>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-0.5 text-[10px] font-mono text-slate-400 uppercase tracking-[0.1em]">
+                ID: {user.userId}
+              </p>
+              <p className="mt-3 text-sm text-slate-500">
                 {user.profile?.email || "No email available"}
               </p>
               <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
