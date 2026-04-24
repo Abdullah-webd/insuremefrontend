@@ -11,6 +11,8 @@ export default function ChatPage() {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
   const [historyError, setHistoryError] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const [typingText, setTypingText] = useState("");
   const logRef = useRef(null);
 
   useEffect(() => {
@@ -56,8 +58,17 @@ export default function ChatPage() {
     const userMsg = { id: Date.now(), who: "user", text: content, time: new Date() };
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
+    setTypingText("Responding...");
+    
+    const typingTimer = setTimeout(() => {
+      setTypingText("Typing...");
+    }, 3000);
+
     try {
-      const res = await api.sendChat(userId, content);
+      const res = await api.sendChat(userId, content, selectedLanguage);
+      
+      // If the AI responded faster than the "typing" delay, we still want to make it look natural
+      // But for now, we'll just show it once we have the reply.
       setMessages((prev) => [
         ...prev,
         { id: Date.now() + 1, who: "bot", text: res.reply, time: new Date() },
@@ -73,7 +84,9 @@ export default function ChatPage() {
         },
       ]);
     } finally {
+      clearTimeout(typingTimer);
       setLoading(false);
+      setTypingText(""); 
     }
   };
 
@@ -119,6 +132,29 @@ export default function ChatPage() {
     recognition.start();
   };
 
+  const handleRead = (text, lang) => {
+    if (!window.speechSynthesis) {
+      alert("Text-to-speech not supported in this browser.");
+      return;
+    }
+    // Stop any current speaking
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Map our language names to standard codes
+    const langMap = {
+      "English": "en-US",
+      "Hausa": "ha-NG",
+      "Igbo": "ig-NG",
+      "Yoruba": "yo-NG",
+      "Pidgin": "en-NG"
+    };
+    
+    utterance.lang = langMap[lang] || "en-US";
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -145,6 +181,21 @@ export default function ChatPage() {
             >
               {historyLoading ? "Saving..." : "Save ID"}
             </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Language:</span>
+            <select 
+              value={selectedLanguage}
+              onChange={(e) => setSelectedLanguage(e.target.value)}
+              className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-red-500 outline-none transition-all cursor-pointer font-medium"
+            >
+              <option value="English">English</option>
+              <option value="Hausa">Hausa</option>
+              <option value="Igbo">Igbo</option>
+              <option value="Yoruba">Yoruba</option>
+              <option value="Pidgin">Pidgin</option>
+            </select>
           </div>
           
           {imageUrl && (
@@ -180,28 +231,41 @@ export default function ChatPage() {
           {messages.map((m) => (
             <div
               key={m.id}
-              className={`max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+              className={`max-w-[70%] group relative rounded-2xl px-4 py-3 text-sm shadow-sm ${
                 m.who === "user"
                   ? "ml-auto bg-red-700 text-white ring-1 ring-red-800"
                   : "bg-slate-50 border border-slate-200 text-slate-800"
               }`}
             >
               <div className="whitespace-pre-wrap">{m.text}</div>
-              <div className={`text-[10px] mt-1.5 font-medium ${m.who === "user" ? "text-red-100" : "text-slate-400"}`}>
-                {m.time instanceof Date
-                  ? m.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                  : new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <div className="flex items-center justify-between mt-1.5">
+                <div className={`text-[10px] font-medium ${m.who === "user" ? "text-red-100" : "text-slate-400"}`}>
+                  {m.time instanceof Date
+                    ? m.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+                {!loading && (
+                  <button
+                    onClick={() => handleRead(m.text, selectedLanguage)}
+                    className={`text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity ml-4 ${
+                      m.who === "user" ? "text-red-200 hover:text-white" : "text-slate-400 hover:text-red-600"
+                    }`}
+                    title="Read aloud"
+                  >
+                    🔊 Speak
+                  </button>
+                )}
               </div>
             </div>
           ))}
-          {loading && (
+          {loading && typingText && (
             <div className="flex items-center gap-2 max-w-[70%] rounded-2xl px-4 py-3 text-sm bg-slate-50 border border-slate-200 text-slate-500 italic shadow-sm">
               <div className="flex gap-1">
                 <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></span>
                 <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.2s]"></span>
                 <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.4s]"></span>
               </div>
-              <span>AI is thinking...</span>
+              <span>{typingText}</span>
             </div>
           )}
         </div>

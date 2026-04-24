@@ -1,4 +1,4 @@
-﻿export const CONFIG = {
+export const CONFIG = {
   API_BASE:
     import.meta.env.VITE_API_BASE || "https://insuremeserver.onrender.com",
   CLOUDINARY_CLOUD_NAME: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "",

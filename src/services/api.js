@@ -1,4 +1,4 @@
-﻿import { CONFIG } from "../config.js";
+import { CONFIG } from "../config.js";
 
 async function request(path, options = {}) {
   const res = await fetch(`${CONFIG.API_BASE}${path}`, {
@@ -72,10 +72,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  sendChat: (userId, message) =>
+  sendChat: (userId, message, language = "English") =>
     request("/chat", {
       method: "POST",
-      body: JSON.stringify({ userId, message }),
+      body: JSON.stringify({ userId, message, language }),
     }),
   getChatHistory: (userId) => request(`/chat/history/${userId}`),
 };
