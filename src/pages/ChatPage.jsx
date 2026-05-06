@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api, uploadToCloudinary } from "../services/api.js";
 
+const THINKING_MESSAGES = [
+  "I'm reading your message",
+  "Thinking about response",
+  "I'm currently responding to your message",
+  "Sending response"
+];
+
 export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -9,11 +16,26 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [imageUrl, setImageUrl] = useState(null);
+  const [imagePack, setImagePack] = useState([]);
+  const [documentPack, setDocumentPack] = useState([]);
   const [historyError, setHistoryError] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [typingText, setTypingText] = useState("");
   const logRef = useRef(null);
+
+  useEffect(() => {
+    let interval;
+    if (loading && THINKING_MESSAGES.includes(typingText)) {
+      let index = THINKING_MESSAGES.indexOf(typingText);
+      interval = setInterval(() => {
+        if (index < THINKING_MESSAGES.length - 1) {
+          index++;
+          setTypingText(THINKING_MESSAGES[index]);
+        }
+      }, 10000);
+    }
+    return () => clearInterval(interval);
+  }, [loading, typingText]);
 
   useEffect(() => {
     logRef.current?.scrollTo({
@@ -46,74 +68,124 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("insureme_user") || "{}");
+    if (user.userId) {
+      setUserId(user.userId);
+      setTempUserId(user.userId);
+    }
+  }, []);
+
+  useEffect(() => {
     loadHistory(userId);
   }, [userId]);
-
-  const handleSaveId = () => {
-    if (!tempUserId.trim()) return;
-    setUserId(tempUserId.trim());
-  };
 
   const sendMessage = async (content) => {
     const userMsg = { id: Date.now(), who: "user", text: content, time: new Date() };
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
-    setTypingText("Responding...");
+    setTypingText(THINKING_MESSAGES[0]);
     
-    const typingTimer = setTimeout(() => {
-      setTypingText("Typing...");
-    }, 3000);
+    const botMsgId = Date.now() + 1;
+    let initializedBotMsg = false;
+    let currentText = "";
 
-    try {
-      const res = await api.sendChat(userId, content, selectedLanguage);
-      
-      // If the AI responded faster than the "typing" delay, we still want to make it look natural
-      // But for now, we'll just show it once we have the reply.
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now() + 1, who: "bot", text: res.reply, time: new Date() },
-      ]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 2,
-          who: "bot",
-          text: err.message || "Error connecting to AI",
-          time: new Date(),
-        },
-      ]);
-    } finally {
-      clearTimeout(typingTimer);
-      setLoading(false);
-      setTypingText(""); 
-    }
+    await api.sendChatStream(
+      userId,
+      content,
+      selectedLanguage,
+      (chunkText) => {
+        if (!initializedBotMsg) {
+          setTypingText("");
+          setMessages((prev) => [
+            ...prev,
+            { id: botMsgId, who: "bot", text: chunkText, time: new Date() },
+          ]);
+          initializedBotMsg = true;
+          currentText += chunkText;
+        } else {
+          currentText += chunkText;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === botMsgId ? { ...m, text: currentText } : m))
+          );
+        }
+      },
+      (doneData) => {
+        setLoading(false);
+        setTypingText("");
+      },
+      (err) => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 2,
+            who: "bot",
+            text: err.message || "Error connecting to AI",
+            time: new Date(),
+          },
+        ]);
+        setLoading(false);
+        setTypingText("");
+      }
+    );
   };
 
   const handleSend = async () => {
     if (loading || uploading) return;
-    if (imageUrl) {
-      await sendMessage(`IMAGE: ${imageUrl}`);
-      setImageUrl(null);
-      return;
+    
+    let finalContent = input.trim();
+    
+    if (imagePack.length > 0) {
+      const imageList = imagePack.map(url => `IMAGE: ${url}`).join(" ");
+      finalContent = finalContent ? `${finalContent}\n\n${imageList}` : imageList;
     }
-    if (!input.trim()) return;
-    const text = input.trim();
-    setInput("");
-    await sendMessage(text);
+
+    if (documentPack.length > 0) {
+      const docList = documentPack.map((url) => `DOCUMENT: ${url}`).join(" ");
+      finalContent = finalContent ? `${finalContent}\n\n${docList}` : docList;
+    }
+    
+    if (finalContent) {
+      setInput("");
+      setImagePack([]);
+      setDocumentPack([]);
+      await sendMessage(finalContent);
+    }
   };
 
   const handleUpload = async (file) => {
     if (loading) return;
+    const total = imagePack.length + documentPack.length;
+    if (total >= 10) {
+      alert("You can upload up to 10 files at a time.");
+      return;
+    }
     setUploading(true);
     try {
       const url = await uploadToCloudinary(file);
-      setImageUrl(url);
+      const lowerName = String(file?.name || "").toLowerCase();
+      const isDoc =
+        String(file?.type || "").toLowerCase().includes("pdf") ||
+        String(file?.type || "").toLowerCase().includes("msword") ||
+        String(file?.type || "").toLowerCase().includes("officedocument") ||
+        lowerName.endsWith(".pdf") ||
+        lowerName.endsWith(".doc") ||
+        lowerName.endsWith(".docx");
+
+      if (isDoc) setDocumentPack((prev) => [...prev, url]);
+      else setImagePack((prev) => [...prev, url]);
     } catch (err) {
       alert(err.message || "Upload failed");
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleRemoveImage = (index) => {
+    setImagePack(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveDocument = (index) => {
+    setDocumentPack((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSpeech = () => {
@@ -137,12 +209,9 @@ export default function ChatPage() {
       alert("Text-to-speech not supported in this browser.");
       return;
     }
-    // Stop any current speaking
     window.speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Map our language names to standard codes
     const langMap = {
       "English": "en-US",
       "Hausa": "ha-NG",
@@ -165,22 +234,19 @@ export default function ChatPage() {
       </div>
 
       <div className="border border-slate-200 rounded-2xl shadow-card bg-white overflow-hidden">
-        <div className="border-b border-slate-100 px-4 py-3 flex items-center gap-3 bg-slate-50/50">
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Session ID:</span>
-            <input
-              value={tempUserId}
-              onChange={(e) => setTempUserId(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
-              placeholder="user_123"
-            />
-            <button 
-              onClick={handleSaveId}
-              disabled={historyLoading}
-              className="px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors"
-            >
-              {historyLoading ? "Saving..." : "Save ID"}
-            </button>
+        <div className="border-b border-slate-100 px-4 py-3 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Account</p>
+              <p className="text-sm font-semibold text-slate-800">
+                {JSON.parse(localStorage.getItem("insureme_user") || "{}").name || "User"}
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -198,14 +264,25 @@ export default function ChatPage() {
             </select>
           </div>
           
-          {imageUrl && (
+          {imagePack.length + documentPack.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full animate-pulse">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
               <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-tighter">
-                Image ready to send
+                {imagePack.length + documentPack.length} file{imagePack.length + documentPack.length > 1 ? 's' : ''} ready
               </span>
             </div>
           )}
+
+          <button
+            onClick={() => {
+              localStorage.removeItem("insureme_token");
+              localStorage.removeItem("insureme_user");
+              window.location.href = "/login";
+            }}
+            className="ml-4 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-red-50 hover:text-red-700 transition-all active:scale-95"
+          >
+            Log Out
+          </button>
         </div>
 
         <div ref={logRef} className="p-4 h-[55vh] overflow-auto space-y-4 bg-white relative">
@@ -237,7 +314,46 @@ export default function ChatPage() {
                   : "bg-slate-50 border border-slate-200 text-slate-800"
               }`}
             >
-              <div className="whitespace-pre-wrap">{m.text}</div>
+              <div className="whitespace-pre-wrap space-y-2">
+                {m.text.split(/((?:IMAGE|DOCUMENT): https?:\/\/[^\s]+)/g).map((part, idx) => {
+                  if (part.startsWith("IMAGE: ")) {
+                    const url = part.replace("IMAGE: ", "").trim();
+                    return (
+                      <img 
+                        key={idx} 
+                        src={url} 
+                        alt="Upload" 
+                        className="max-w-[240px] w-full h-auto rounded-xl object-cover bg-black/5 shadow-sm border border-black/5 block" 
+                      />
+                    );
+                  }
+                  if (part.startsWith("DOCUMENT: ")) {
+                    const url = part.replace("DOCUMENT: ", "").trim();
+                    return (
+                      <a
+                        key={idx}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wider ${
+                          m.who === "user"
+                            ? "border-red-200 bg-red-600/30 text-white"
+                            : "border-slate-200 bg-white text-slate-700"
+                        }`}
+                      >
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-white">
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <path d="M14 2v6h6" />
+                          </svg>
+                        </span>
+                        Open document
+                      </a>
+                    );
+                  }
+                  return part.trim() ? <div key={idx}>{part}</div> : null;
+                })}
+              </div>
               <div className="flex items-center justify-between mt-1.5">
                 <div className={`text-[10px] font-medium ${m.who === "user" ? "text-red-100" : "text-slate-400"}`}>
                   {m.time instanceof Date
@@ -258,6 +374,7 @@ export default function ChatPage() {
               </div>
             </div>
           ))}
+          
           {loading && typingText && (
             <div className="flex items-center gap-2 max-w-[70%] rounded-2xl px-4 py-3 text-sm bg-slate-50 border border-slate-200 text-slate-500 italic shadow-sm">
               <div className="flex gap-1">
@@ -271,52 +388,131 @@ export default function ChatPage() {
         </div>
 
         <div className="border-t border-slate-100 p-4 bg-slate-50/30">
-          {uploading && (
-            <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 text-xs font-medium">
-              <div className="w-3 h-3 border-2 border-blue-700/20 border-t-blue-700 rounded-full animate-spin"></div>
-              Uploading image to insurance portal...
+          {(uploading || imagePack.length > 0 || documentPack.length > 0) && (
+            <div className="mb-4 flex flex-col gap-3">
+              {uploading && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 text-[10px] font-bold uppercase tracking-wider animate-pulse font-mono">
+                  <div className="w-3 h-3 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+                  Uploading media to portal...
+                </div>
+              )}
+              {imagePack.length > 0 && (
+                <div className="flex gap-3 overflow-auto pb-2">
+                  {imagePack.map((url, idx) => (
+                    <div key={idx} className="relative w-20 h-20 shrink-0 rounded-2xl overflow-hidden border-2 border-red-100 shadow-sm transition-transform hover:scale-105">
+                      <img src={url} alt="Pending" className="w-full h-full object-cover" />
+                      <button 
+                        onClick={() => handleRemoveImage(idx)}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 shadow-md hover:bg-red-700 transition-colors"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {documentPack.length > 0 && (
+                <div className="flex gap-3 overflow-auto pb-2">
+                  {documentPack.map((url, idx) => (
+                    <div
+                      key={idx}
+                      className="relative flex h-20 w-48 shrink-0 items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white px-3 shadow-sm"
+                    >
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
+                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <path d="M14 2v6h6" />
+                        </svg>
+                      </div>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-700 underline decoration-slate-200 underline-offset-4"
+                        title={url}
+                      >
+                        Document link
+                      </a>
+                      <button
+                        onClick={() => handleRemoveDocument(idx)}
+                        className="absolute top-1 right-1 bg-slate-900 text-white rounded-full p-1 shadow-md hover:bg-black transition-colors"
+                        title="Remove"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
-          <div className="flex flex-wrap gap-2 items-center">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={Boolean(imageUrl) || loading || uploading}
-            className="flex-1 min-w-[200px] px-3 py-2 border border-slate-200 rounded-xl text-sm"
-            placeholder={
-              imageUrl
-                ? "Image selected. Send to continue."
-                : "Type your message"
-            }
-          />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleUpload(file);
-            }}
-            disabled={uploading || loading}
-            className="text-sm"
-          />
-          <button
-            type="button"
-            onClick={handleSpeech}
-            className="px-3 py-2 rounded-xl border border-slate-200 text-sm"
-          >
-            Mic
-          </button>
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={uploading || loading || (!input.trim() && !imageUrl)}
-            className="px-4 py-2 rounded-xl bg-red-700 text-white text-sm"
-          >
-            Send
-          </button>
+          
+          <div className="flex items-start gap-2">
+            <div className="flex-1">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                disabled={loading}
+                rows="1"
+                onInput={(e) => {
+                  e.target.style.height = "auto";
+                  e.target.style.height = e.target.scrollHeight + "px";
+                }}
+                className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all resize-none min-h-[44px] max-h-[150px]"
+                placeholder={uploading ? "Waiting for upload..." : "Type your message..."}
+              />
+            </div>
+            
+            <div className="flex gap-2 shrink-0 pt-1">
+              <label className={`cursor-pointer group ${uploading || loading ? "pointer-events-none opacity-40" : ""}`}>
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept="image/*,video/*,application/pdf,.pdf,.doc,.docx"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    files.forEach(handleUpload);
+                  }}
+                  disabled={uploading || loading}
+                />
+                <div className="p-3 rounded-xl border border-slate-200 bg-white group-hover:bg-red-50 group-hover:border-red-200 transition-all shadow-sm">
+                  <svg className="w-5 h-5 text-slate-400 group-hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </label>
+
+              <button
+                type="button"
+                onClick={handleSpeech}
+                disabled={uploading || loading}
+                className="p-3 rounded-xl border border-slate-200 text-sm hover:bg-slate-100 transition-colors shadow-sm disabled:opacity-40"
+              >
+                <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={uploading || loading || (!input.trim() && imagePack.length === 0 && documentPack.length === 0)}
+                className="px-6 py-3 rounded-2xl bg-red-800 text-white text-sm font-bold shadow-lg shadow-red-100 hover:bg-red-900 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : "Send"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
 }

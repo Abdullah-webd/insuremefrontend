@@ -1,8 +1,15 @@
 import { CONFIG } from "../config.js";
 
 async function request(path, options = {}) {
+  const token = localStorage.getItem("insureme_token");
+  const headers = { 
+    "Content-Type": "application/json", 
+    ...(options.headers || {}) 
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch(`${CONFIG.API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    headers,
     ...options,
   });
   const data = await res.json().catch(() => ({}));
@@ -55,28 +62,75 @@ export const api = {
     request(`/admin/submissions/${id}/verify-payment`, {
       method: "POST",
     }),
+  rejectSubmission: (id, body) =>
+    request(`/admin/submissions/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify(body || {}),
+    }),
   verifySubmissionField: (id, body) =>
     request(`/admin/submissions/${id}/verify-field`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  getRequests: (params = {}) => request(`/admin/requests${buildQuery(params)}`),
-  getRequest: (id) => request(`/admin/requests/${id}`),
-  sendRequestEmail: (id, body) =>
-    request(`/admin/requests/${id}/send-email`, {
+  getVerifiers: () => request("/admin/verifiers"),
+  assignVerifier: (id, body) =>
+    request(`/admin/submissions/${id}/assign`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  getMyTasks: (verifierId) =>
+    request(`/verifier/my-tasks${buildQuery({ verifierId })}`),
+  getVerifierTask: (id, verifierId) =>
+    request(`/verifier/submissions/${id}${buildQuery({ verifierId })}`),
+  verifySubmission: (id, body) => request(`/verifier/submissions/${id}/verify`, { method: "POST", body: JSON.stringify(body) }),
   sendEmail: (body) =>
     request("/admin/email", {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  login: (body) => request("/auth/login", { method: "POST", body: JSON.stringify(body) }),
+  register: (body) => request("/auth/register", { method: "POST", body: JSON.stringify(body) }),
   sendChat: (userId, message, language = "English") =>
     request("/chat", {
       method: "POST",
       body: JSON.stringify({ userId, message, language }),
     }),
+  sendChatStream: async (userId, message, language, onChunk, onDone, onError) => {
+    try {
+      const res = await fetch(`${CONFIG.API_BASE}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, message, language, stream: true }),
+      });
+      if (!res.ok) throw new Error("Chat request failed");
+      
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunkStr = decoder.decode(value, { stream: true });
+        const lines = chunkStr.split("\n\n");
+        for (const line of lines) {
+          if (line.trim().startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.trim().substring(6));
+              if (data.error) throw new Error(data.error);
+              if (data.text && onChunk) onChunk(data.text);
+              if (data.done && onDone) onDone(data);
+            } catch (err) {
+              if (err.message !== "Unexpected end of JSON input") {
+                throw err;
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if (onError) onError(err);
+    }
+  },
   getChatHistory: (userId) => request(`/chat/history/${userId}`),
 };
 

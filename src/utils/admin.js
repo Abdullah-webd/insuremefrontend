@@ -11,10 +11,10 @@ export const STATUS_STYLES = {
 export const ADMIN_NAV_ITEMS = [
   { to: "/admin/applications", label: "Applications", icon: "folder" },
   { to: "/admin/claims", label: "Claims", icon: "shield" },
-  { to: "/admin/requests", label: "Requests", icon: "inbox" },
   { to: "/admin/users", label: "Users", icon: "users" },
+  { to: "/admin/chats", label: "Chat Logs", icon: "inbox" },
   { to: "/admin/analytics", label: "Analytics", icon: "chart" },
-  { to: "/chat", label: "User Chat", icon: "chat" },
+  { to: "/chat", label: "Chat Simulation", icon: "chat" },
 ];
 
 export function titleCase(text = "") {
@@ -91,8 +91,9 @@ export function getApplicationFields(submission) {
   const preset = getPresetForType(submission?.type || "");
   const submissionData = submission?.data || {};
   const knownKeys = new Set(preset.fields.map((field) => field.key));
+  const hiddenKeys = new Set(["bvn", "nin"]);
   const extraFields = Object.keys(submissionData)
-    .filter((key) => !knownKeys.has(key))
+    .filter((key) => !knownKeys.has(key) && !hiddenKeys.has(key))
     .map((key) => ({ key, label: titleCase(key) }));
 
   return {

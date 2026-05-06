@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   InfoStrip,
   MediaLightbox,
@@ -73,6 +73,7 @@ function buildUpdatePayload(submission, key, value, replacements = []) {
 
 export default function AdminApplicationDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [submission, setSubmission] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -87,7 +88,11 @@ export default function AdminApplicationDetailPage() {
   const [previewMedia, setPreviewMedia] = useState(null);
   const [verifyingField, setVerifyingField] = useState(null);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({});
+  const [verifiers, setVerifiers] = useState([]);
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -101,6 +106,9 @@ export default function AdminApplicationDetailPage() {
           const userResponse = await api.getUser(response.submission.userId);
           setUserProfile(userResponse.user);
         }
+
+        const verifiersRes = await api.getVerifiers();
+        setVerifiers(verifiersRes.items || []);
       } catch (err) {
         setError(err.message || "Failed to load application");
       } finally {
@@ -117,9 +125,9 @@ export default function AdminApplicationDetailPage() {
     [submission],
   );
 
-  const overviewKeys = new Set(["full_name", "email", "phone", "bvn"]);
+  const overviewKeys = new Set(["full_name", "email", "phone"]);
   const mediaFields = fields.filter((field) => field.media);
-  const verifyableFields = new Set(["bvn", "nin", "plate_number"]);
+  const verifyableFields = new Set(["plate_number"]);
   const manualVerifications =
     submission?.adminNotes?.manual_verifications || {};
 
@@ -128,9 +136,10 @@ export default function AdminApplicationDetailPage() {
       submission?.data?.full_name || userProfile?.profile?.full_name || "",
     email: submission?.data?.email || userProfile?.profile?.email || "",
     phone: submission?.data?.phone || userProfile?.profile?.phone || "",
-    bvn: submission?.data?.bvn || "",
-    nin: submission?.data?.nin || "",
     plate_number: submission?.data?.plate_number || "",
+    property_value: submission?.data?.property_value || "",
+    ownership_age: submission?.data?.ownership_age || "",
+    condition: submission?.data?.condition || "",
     riskScoreFinal: submission?.riskScoreFinal ?? "",
     premiumAmount: submission?.premiumFinal?.amount ?? "",
   };
@@ -139,8 +148,15 @@ export default function AdminApplicationDetailPage() {
     { key: "full_name", label: "Full Name" },
     { key: "email", label: "Email", type: "email" },
     { key: "phone", label: "Phone Number" },
-    { key: "bvn", label: "BVN" },
-    { key: "nin", label: "NIN" },
+    ...(fieldValues.property_value
+      ? [{ key: "property_value", label: "Value", type: "number" }]
+      : []),
+    ...(fieldValues.ownership_age
+      ? [{ key: "ownership_age", label: "Years Owned", type: "number" }]
+      : []),
+    ...(fieldValues.condition
+      ? [{ key: "condition", label: "Condition" }]
+      : []),
     ...(fieldValues.plate_number
       ? [{ key: "plate_number", label: "Plate Number" }]
       : []),
@@ -286,6 +302,7 @@ export default function AdminApplicationDetailPage() {
       return;
     }
 
+    setApproving(true);
     try {
       await api.approveSubmission(submission._id, {
         premiumFinal: {
@@ -298,6 +315,36 @@ export default function AdminApplicationDetailPage() {
       setSubmission(fresh.submission);
     } catch (err) {
       alert(err.message || "Approval failed");
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!submission) return;
+    if (submission.status === "paid") return;
+
+    const reason = window.prompt(
+      "Reason for rejection (this will be emailed to the user):",
+    );
+    if (!reason || !reason.trim()) return;
+
+    setRejecting(true);
+    try {
+      const res = await api.rejectSubmission(submission._id, {
+        reason: reason.trim(),
+      });
+      const sent = Boolean(res?.emailSent);
+      alert(
+        sent
+          ? "Application rejected and rejection email sent to the user."
+          : "Application rejected, but no email was sent (missing email or mail error).",
+      );
+      navigate("/admin/applications");
+    } catch (err) {
+      alert(err.message || "Rejection failed");
+    } finally {
+      setRejecting(false);
     }
   };
 
@@ -381,6 +428,20 @@ export default function AdminApplicationDetailPage() {
         </button>
       </div>
     );
+  };
+
+  const handleAssign = async (verifierId) => {
+    if (!submission) return;
+    setAssigning(true);
+    try {
+      await api.assignVerifier(submission._id, { verifierId });
+      const fresh = await api.getSubmission(submission._id);
+      setSubmission(fresh.submission);
+    } catch (err) {
+      alert(err.message || "Assignment failed");
+    } finally {
+      setAssigning(false);
+    }
   };
 
   const handleSendEmail = async () => {
@@ -473,24 +534,47 @@ export default function AdminApplicationDetailPage() {
               >
                 Send Email
               </button>
+              <Link
+                to={`/admin/chats?userId=${submission.userId}`}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                View Chat
+              </Link>
               <button
                 type="button"
                 onClick={handleApprove}
                 disabled={
+                  approving ||
+                  rejecting ||
                   submission.status === "approved" ||
                   submission.status === "paid"
                 }
                 className={`rounded-full px-4 py-2 text-sm font-medium ${
+                  approving ||
                   submission.status === "approved" ||
                   submission.status === "paid"
                     ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
                     : "border border-red-800 bg-red-800 text-white"
                 }`}
               >
-                {submission.status === "approved" ||
-                submission.status === "paid"
-                  ? "Payment Link Sent"
-                  : "Approve Application"}
+                {approving
+                  ? "Approving..."
+                  : submission.status === "approved" ||
+                      submission.status === "paid"
+                    ? "Payment Link Sent"
+                    : "Approve Application"}
+              </button>
+              <button
+                type="button"
+                onClick={handleReject}
+                disabled={approving || rejecting || submission.status === "paid"}
+                className={`rounded-full px-4 py-2 text-sm font-medium ${
+                  approving || rejecting || submission.status === "paid"
+                    ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
+                    : "border border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-300"
+                }`}
+              >
+                {rejecting ? "Rejecting..." : "Reject Application"}
               </button>
               <button
                 type="button"
@@ -506,6 +590,58 @@ export default function AdminApplicationDetailPage() {
               </button>
             </div>
           </div>
+
+          {/* Verifier Assignment */}
+          <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Verification Officer</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-900">
+                    {verifiers.find(v => v._id === submission.verifierId)?.name || (submission.verifierId ? "Assigned" : "Not Assigned")}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tighter border ${
+                    submission.verificationStatus === 'verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    submission.verificationStatus === 'suspicious' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                    submission.verificationStatus === 'info_needed' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    'bg-slate-50 text-slate-600 border-slate-200'
+                  }`}>
+                    {submission.verificationStatus || 'pending'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                disabled={locked || assigning}
+                value={submission.verifierId || ""}
+                onChange={(e) => handleAssign(e.target.value)}
+                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none disabled:opacity-50"
+              >
+                <option value="">Assign Verifier...</option>
+                {verifiers.map(v => (
+                  <option key={v._id} value={v._id}>{v.name} ({v.email})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {submission?.verifierNotes ? (
+            <div className="mt-4 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                Verifier Note
+              </p>
+              <p className="mt-3 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-800">
+                {submission.verifierNotes}
+              </p>
+            </div>
+          ) : null}
 
           <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {editableFields.map((field) => (

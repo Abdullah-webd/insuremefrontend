@@ -30,11 +30,13 @@ export default function AdminUsersPage() {
               className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5"
             >
               <p className="text-base font-semibold text-slate-900 sm:text-lg break-all">
-                {user.profile?.full_name || "User " + user.userId.slice(-4)}
+                {user.name || user.profile?.full_name || "User " + user.userId.slice(-4)}
               </p>
-              <p className="mt-0.5 text-[10px] font-mono text-slate-400 uppercase tracking-[0.1em]">
-                ID: {user.userId}
-              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">
+                  ID: {user.userId}
+                </p>
+              </div>
               <p className="mt-3 text-sm text-slate-500">
                 {user.profile?.email || "No email available"}
               </p>

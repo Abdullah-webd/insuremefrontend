@@ -6,17 +6,33 @@ import AdminApplicationDetailPage from "./pages/AdminApplicationDetailPage.jsx";
 import AdminApplicationsPage from "./pages/AdminApplicationsPage.jsx";
 import AdminClaimDetailPage from "./pages/AdminClaimDetailPage.jsx";
 import AdminClaimsPage from "./pages/AdminClaimsPage.jsx";
-import AdminRequestsPage from "./pages/AdminRequestsPage.jsx";
-import AdminRequestDetailPage from "./pages/AdminRequestDetailPage.jsx";
+
 import ChatPage from "./pages/ChatPage.jsx";
 import LoginPage from "./pages/Login.jsx";
 import AdminUserDetailPage from "./pages/AdminUserDetailPage.jsx";
 import AdminUsersPage from "./pages/AdminUsersPage.jsx";
+import AdminChatsPage from "./pages/AdminChatsPage.jsx";
+import VerifierLayout from "./components/VerifierLayout.jsx";
+import VerifierDashboard from "./pages/VerifierDashboard.jsx";
+import VerifierSubmissionDetail from "./pages/VerifierSubmissionDetail.jsx";
 
-const isAuthed = () => localStorage.getItem("insureme_admin_auth") === "true";
+const getUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("insureme_user") || "null");
+  } catch {
+    return null;
+  }
+};
 
-function ProtectedRoute({ children }) {
-  if (!isAuthed()) return <Navigate to="/login" replace />;
+const isAuthed = (allowedRoles) => {
+  const user = getUser();
+  if (!user) return false;
+  if (!allowedRoles) return true;
+  return allowedRoles.includes(user.role);
+};
+
+function ProtectedRoute({ children, roles }) {
+  if (!isAuthed(roles)) return <Navigate to="/login" replace />;
   return children;
 }
 
@@ -32,16 +48,13 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={<Navigate to="/admin/applications" replace />}
-        />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
 
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["admin"]}>
               <AdminLayout />
             </ProtectedRoute>
           }
@@ -57,25 +70,40 @@ export default function App() {
           />
           <Route path="claims" element={<AdminClaimsPage />} />
           <Route path="claims/:id" element={<AdminClaimDetailPage />} />
-          <Route path="requests" element={<AdminRequestsPage />} />
-          <Route path="requests/:id" element={<AdminRequestDetailPage />} />
+
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="users/:userId" element={<AdminUserDetailPage />} />
+          <Route path="chats" element={<AdminChatsPage />} />
           <Route path="analytics" element={<AdminAnalyticsPage />} />
+        </Route>
+
+        <Route
+          path="/verifier"
+          element={
+            <ProtectedRoute roles={["verifier"]}>
+              <VerifierLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/verifier/dashboard" replace />} />
+          <Route path="dashboard" element={<VerifierDashboard />} />
+          <Route path="tasks/:id" element={<VerifierSubmissionDetail />} />
         </Route>
 
         <Route
           path="/chat"
           element={
-            <ChatShell>
-              <ChatPage />
-            </ChatShell>
+            <ProtectedRoute roles={["user", "admin", "verifier"]}>
+              <ChatShell>
+                <ChatPage />
+              </ChatShell>
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="*"
-          element={<Navigate to="/admin/applications" replace />}
+          element={<Navigate to="/chat" replace />}
         />
       </Routes>
     </BrowserRouter>

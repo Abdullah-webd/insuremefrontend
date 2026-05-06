@@ -159,11 +159,14 @@ export default function AdminApplicationsPage() {
                       )}
                       <div>
                         <p className="text-sm font-semibold text-slate-900">
-                          {item.data?.full_name || item.userId}
+                          {item.userName || item.data?.full_name || "Unknown User"}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {item.data?.email || "No email"} · {formatDate(item.submittedAt)}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider bg-slate-100 px-1 py-0.5 rounded">ID: {item.userId}</p>
+                          <p className="text-xs text-slate-500">
+                            {item.data?.email || "No email"} · {formatDate(item.submittedAt)}
+                          </p>
+                        </div>
                       </div>
                     </div>
 

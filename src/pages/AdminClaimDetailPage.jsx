@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   InfoStrip,
   MediaCard,
@@ -19,13 +19,17 @@ import {
 
 export default function AdminClaimDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [claim, setClaim] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [allSubmissions, setAllSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [approving, setApproving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
   const [previewMedia, setPreviewMedia] = useState(null);
+  const [verifiers, setVerifiers] = useState([]);
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -36,9 +40,10 @@ export default function AdminClaimDetailPage() {
         setClaim(response.submission);
 
         if (response.submission?.userId) {
-          const [userResponse, submissionsResponse] = await Promise.all([
+          const [userResponse, submissionsResponse, verifiersRes] = await Promise.all([
             api.getUser(response.submission.userId),
             api.getSubmissions(),
+            api.getVerifiers(),
           ]);
           setUserProfile(userResponse.user);
           setAllSubmissions(
@@ -46,6 +51,7 @@ export default function AdminClaimDetailPage() {
               (item) => item.userId === response.submission.userId,
             ),
           );
+          setVerifiers(verifiersRes.items || []);
         }
       } catch (err) {
         setError(err.message || "Failed to load claim details");
@@ -118,6 +124,44 @@ export default function AdminClaimDetailPage() {
     }
   };
 
+  const handleRejectClaim = async () => {
+    if (!claim) return;
+    if (claim.status === "paid") return;
+
+    const reason = window.prompt("Reason for rejection (this will be emailed to the user):");
+    if (!reason || !reason.trim()) return;
+
+    setRejecting(true);
+    try {
+      const res = await api.rejectSubmission(claim._id, { reason: reason.trim() });
+      const sent = Boolean(res?.emailSent);
+      alert(
+        sent
+          ? "Claim rejected and rejection email sent to the user."
+          : "Claim rejected, but no email was sent (missing email or mail error).",
+      );
+      navigate("/admin/claims");
+    } catch (err) {
+      alert(err.message || "Unable to reject claim");
+    } finally {
+      setRejecting(false);
+    }
+  };
+
+  const handleAssign = async (verifierId) => {
+    if (!claim) return;
+    setAssigning(true);
+    try {
+      await api.assignVerifier(claim._id, { verifierId });
+      const fresh = await api.getSubmission(claim._id);
+      setClaim(fresh.submission);
+    } catch (err) {
+      alert(err.message || "Assignment failed");
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   if (loading) {
     return (
       <Surface className="p-10 text-center text-sm text-slate-500">
@@ -186,8 +230,78 @@ export default function AdminClaimDetailPage() {
                   ? "Approving..."
                   : "Approve Claim"}
             </button>
+            <button
+              type="button"
+              onClick={handleRejectClaim}
+              disabled={approving || rejecting || claim.status === "paid"}
+              className={`rounded-full px-4 py-2 text-sm font-medium ${
+                approving || rejecting || claim.status === "paid"
+                  ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
+                  : "border border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-300"
+              }`}
+            >
+              {rejecting ? "Rejecting..." : "Reject Claim"}
+            </button>
+            <Link
+              to={`/admin/chats?userId=${claim.userId}`}
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              View Chat
+            </Link>
           </div>
         </div>
+
+        {/* Verifier Assignment */}
+        <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Verification Officer</p>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-sm font-semibold text-slate-900">
+                  {verifiers.find(v => v._id === claim.verifierId)?.name || (claim.verifierId ? "Assigned" : "Not Assigned")}
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tighter border ${
+                  claim.verificationStatus === 'verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                  claim.verificationStatus === 'suspicious' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                  claim.verificationStatus === 'info_needed' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                  'bg-slate-50 text-slate-600 border-slate-200'
+                }`}>
+                  {claim.verificationStatus || 'pending'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              disabled={claim.status === 'approved' || claim.status === 'paid' || assigning}
+              value={claim.verifierId || ""}
+              onChange={(e) => handleAssign(e.target.value)}
+              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none disabled:opacity-50"
+            >
+              <option value="">Assign Verifier...</option>
+              {verifiers.map(v => (
+                <option key={v._id} value={v._id}>{v.name} ({v.email})</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {claim?.verifierNotes ? (
+          <div className="mt-4 rounded-[30px] border border-slate-200 bg-slate-50 p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+              Verifier Note
+            </p>
+            <p className="mt-4 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-800">
+              {claim.verifierNotes}
+            </p>
+          </div>
+        ) : null}
 
         <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {[
