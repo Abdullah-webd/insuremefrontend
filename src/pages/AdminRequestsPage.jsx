@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../services/api.js";
+import toast from "react-hot-toast";
 
 export default function AdminRequestsPage() {
   const [items, setItems] = useState([]);
@@ -12,7 +13,7 @@ export default function AdminRequestsPage() {
       const res = await api.getRequests();
       setItems(res.items || []);
     } catch (err) {
-      alert(err.message || "Failed to load requests");
+      toast.error(err.message || "Failed to load requests");
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api, uploadToCloudinary } from "../services/api.js";
 import { getPresetForType } from "../config/insuranceFields.js";
+import toast from "react-hot-toast";
 
 const STATUS_STYLES = {
   submitted: "bg-amber-50 text-amber-700 border-amber-200",
@@ -191,7 +192,7 @@ export default function AdminDashboard() {
       const url = await uploadToCloudinary(file);
       setUrlReplacements((prev) => [...prev, { from: currentValue, to: url }]);
     } catch (err) {
-      alert(err.message || "Upload failed");
+      toast.error(err.message || "Upload failed");
     }
   };
 
@@ -239,7 +240,7 @@ export default function AdminDashboard() {
       setSubmissions(refresh.items || []);
       setUrlReplacements([]);
     } catch (err) {
-      alert(err.message || "Save failed");
+      toast.error(err.message || "Save failed");
     } finally {
       setSaving(false);
     }
@@ -265,7 +266,7 @@ export default function AdminDashboard() {
       const refresh = await api.getSubmissions();
       setSubmissions(refresh.items || []);
     } catch (err) {
-      alert(err.message || "Approval failed");
+      toast.error(err.message || "Approval failed");
     }
   };
 
@@ -299,7 +300,7 @@ export default function AdminDashboard() {
       const refresh = await api.getSubmissions();
       setSubmissions(refresh.items || []);
     } catch (err) {
-      alert(err.message || "Claim approval failed");
+      toast.error(err.message || "Claim approval failed");
     }
   };
 
@@ -309,7 +310,7 @@ export default function AdminDashboard() {
       setProfile(data.user);
       setProfileOpen(true);
     } catch (err) {
-      alert(err.message || "Failed to load user profile");
+      toast.error(err.message || "Failed to load user profile");
     }
   };
 

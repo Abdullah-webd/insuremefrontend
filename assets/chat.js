@@ -1,4 +1,4 @@
-﻿import { CONFIG } from "./config.js";
+import { CONFIG } from "./config.js";
 
 const chatLog = document.getElementById("chatLog");
 const userIdInput = document.getElementById("userId");

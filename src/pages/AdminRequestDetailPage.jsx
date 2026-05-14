@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../services/api.js";
+import toast from "react-hot-toast";
 
 export default function AdminRequestDetailPage() {
   const { id } = useParams();
@@ -16,7 +17,7 @@ export default function AdminRequestDetailPage() {
       const res = await api.getRequest(id);
       setRequest(res.request);
     } catch (err) {
-      alert(err.message || "Failed to load request");
+      toast.error(err.message || "Failed to load request");
     } finally {
       setLoading(false);
     }
@@ -31,9 +32,9 @@ export default function AdminRequestDetailPage() {
     setSending(true);
     try {
       await api.sendRequestEmail(id, { subject, html: body, text: body });
-      alert("Email sent");
+      toast.success("Email sent");
     } catch (err) {
-      alert(err.message || "Failed to send email");
+      toast.error(err.message || "Failed to send email");
     } finally {
       setSending(false);
     }

@@ -9,6 +9,7 @@ import {
   Surface,
 } from "../components/AdminUi.jsx";
 import { api } from "../services/api.js";
+import toast from "react-hot-toast";
 import {
   formatDate,
   formatFieldValue,
@@ -116,9 +117,9 @@ export default function AdminClaimDetailPage() {
 
       const fresh = await api.getSubmission(claim._id);
       setClaim(fresh.submission);
-      alert("Claim approved and user notified.");
+      toast.success("Claim approved and user notified.");
     } catch (err) {
-      alert(err.message || "Unable to approve claim");
+      toast.error(err.message || "Unable to approve claim");
     } finally {
       setApproving(false);
     }
@@ -135,14 +136,14 @@ export default function AdminClaimDetailPage() {
     try {
       const res = await api.rejectSubmission(claim._id, { reason: reason.trim() });
       const sent = Boolean(res?.emailSent);
-      alert(
+      toast.success(
         sent
           ? "Claim rejected and rejection email sent to the user."
-          : "Claim rejected, but no email was sent (missing email or mail error).",
+          : "Claim rejected, but no email was sent (missing email or mail error)."
       );
       navigate("/admin/claims");
     } catch (err) {
-      alert(err.message || "Unable to reject claim");
+      toast.error(err.message || "Unable to reject claim");
     } finally {
       setRejecting(false);
     }
@@ -156,7 +157,7 @@ export default function AdminClaimDetailPage() {
       const fresh = await api.getSubmission(claim._id);
       setClaim(fresh.submission);
     } catch (err) {
-      alert(err.message || "Assignment failed");
+      toast.error(err.message || "Assignment failed");
     } finally {
       setAssigning(false);
     }

@@ -95,7 +95,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ userId, message, language }),
     }),
-  sendChatStream: async (userId, message, language, onChunk, onDone, onError) => {
+  sendChatStream: async (userId, message, language, onChunk, onStatus, onDone, onError) => {
     try {
       const res = await fetch(`${CONFIG.API_BASE}/chat`, {
         method: "POST",
@@ -117,6 +117,7 @@ export const api = {
             try {
               const data = JSON.parse(line.trim().substring(6));
               if (data.error) throw new Error(data.error);
+              if (data.status && onStatus) onStatus(data.status);
               if (data.text && onChunk) onChunk(data.text);
               if (data.done && onDone) onDone(data);
             } catch (err) {

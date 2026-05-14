@@ -10,6 +10,7 @@ import {
   Surface,
 } from "../components/AdminUi.jsx";
 import { api, uploadToCloudinary } from "../services/api.js";
+import toast from "react-hot-toast";
 import {
   formatFieldValue,
   formatMoney,
@@ -42,6 +43,7 @@ function coerceEditedValue(submission, key, rawValue) {
 function buildUpdatePayload(submission, key, value, replacements = []) {
   const metaKeys = {
     riskScoreFinal: true,
+    riskRationale: true,
     premiumAmount: true,
   };
 
@@ -63,6 +65,9 @@ function buildUpdatePayload(submission, key, value, replacements = []) {
         currency: submission?.premiumFinal?.currency || "NGN",
         period: submission?.premiumFinal?.period || "year",
       };
+    }
+    if (key === "riskRationale") {
+      body.submission_updates.riskRationale = String(value || "");
     }
   } else {
     body.user.workflow.collected_fields[key] = value;
@@ -141,6 +146,7 @@ export default function AdminApplicationDetailPage() {
     ownership_age: submission?.data?.ownership_age || "",
     condition: submission?.data?.condition || "",
     riskScoreFinal: submission?.riskScoreFinal ?? "",
+    riskRationale: submission?.riskRationale ?? "",
     premiumAmount: submission?.premiumFinal?.amount ?? "",
   };
 
@@ -162,6 +168,7 @@ export default function AdminApplicationDetailPage() {
       : []),
     { key: "riskScoreFinal", label: "Risk Score", type: "number" },
     { key: "premiumAmount", label: "Amount", type: "number" },
+    { key: "riskRationale", label: "Analysis Rationale", type: "textarea" },
   ];
   const recipientEmail =
     submission?.data?.email || userProfile?.profile?.email || "";
@@ -191,7 +198,7 @@ export default function AdminApplicationDetailPage() {
       setSubmission(fresh.submission);
       setEditingField(null);
     } catch (err) {
-      alert(err.message || "Unable to save this field");
+      toast.error(err.message || "Unable to save this field");
     } finally {
       setSaving(false);
     }
@@ -216,7 +223,7 @@ export default function AdminApplicationDetailPage() {
       const fresh = await api.getSubmission(submission._id);
       setSubmission(fresh.submission);
     } catch (err) {
-      alert(err.message || "Unable to replace media");
+      toast.error(err.message || "Unable to replace media");
     } finally {
       setUploadingField(null);
       setUploadProgress((prev) => {
@@ -250,7 +257,7 @@ export default function AdminApplicationDetailPage() {
       const fresh = await api.getSubmission(submission._id);
       setSubmission(fresh.submission);
     } catch (err) {
-      alert(err.message || "Unable to delete media");
+      toast.error(err.message || "Unable to delete media");
     } finally {
       setSaving(false);
     }
@@ -282,7 +289,7 @@ export default function AdminApplicationDetailPage() {
       const fresh = await api.getSubmission(submission._id);
       setSubmission(fresh.submission);
     } catch (err) {
-      alert(err.message || "Unable to add media");
+      toast.error(err.message || "Unable to add media");
     } finally {
       setUploadingField(null);
       setUploadProgress((prev) => {
@@ -314,7 +321,7 @@ export default function AdminApplicationDetailPage() {
       const fresh = await api.getSubmission(submission._id);
       setSubmission(fresh.submission);
     } catch (err) {
-      alert(err.message || "Approval failed");
+      toast.error(err.message || "Approval failed");
     } finally {
       setApproving(false);
     }
@@ -335,14 +342,14 @@ export default function AdminApplicationDetailPage() {
         reason: reason.trim(),
       });
       const sent = Boolean(res?.emailSent);
-      alert(
+      toast.success(
         sent
           ? "Application rejected and rejection email sent to the user."
-          : "Application rejected, but no email was sent (missing email or mail error).",
+          : "Application rejected, but no email was sent (missing email or mail error)."
       );
       navigate("/admin/applications");
     } catch (err) {
-      alert(err.message || "Rejection failed");
+      toast.error(err.message || "Rejection failed");
     } finally {
       setRejecting(false);
     }
@@ -351,7 +358,7 @@ export default function AdminApplicationDetailPage() {
   const handleVerifyPayment = async () => {
     if (!submission) return;
     if (!submission.paymentReference) {
-      alert("No payment reference found for this submission");
+      toast.error("No payment reference found for this submission");
       return;
     }
 
@@ -369,12 +376,12 @@ export default function AdminApplicationDetailPage() {
         updated?.status === "paid" ||
         updated?.paymentStatus === "success"
       ) {
-        alert("Payment verified: SUCCESS — submission marked as paid.");
+        toast.success("Payment verified: SUCCESS — submission marked as paid.");
       } else {
-        alert("Payment not successful. See updated submission for details.");
+        toast.error("Payment not successful. See updated submission for details.");
       }
     } catch (err) {
-      alert(err.message || "Payment verification failed");
+      toast.error(err.message || "Payment verification failed");
     } finally {
       setVerifyingPayment(false);
     }
@@ -392,7 +399,7 @@ export default function AdminApplicationDetailPage() {
       });
       if (res?.submission) setSubmission(res.submission);
     } catch (err) {
-      alert(err.message || "Verification failed");
+      toast.error(err.message || "Verification failed");
     } finally {
       setVerifyingField(null);
     }
@@ -438,7 +445,7 @@ export default function AdminApplicationDetailPage() {
       const fresh = await api.getSubmission(submission._id);
       setSubmission(fresh.submission);
     } catch (err) {
-      alert(err.message || "Assignment failed");
+      toast.error(err.message || "Assignment failed");
     } finally {
       setAssigning(false);
     }
@@ -446,12 +453,12 @@ export default function AdminApplicationDetailPage() {
 
   const handleSendEmail = async () => {
     if (!recipientEmail) {
-      alert("This user does not have an email address on record yet.");
+      toast.error("This user does not have an email address on record yet.");
       return;
     }
 
     if (!emailForm.subject.trim() || !emailForm.text.trim()) {
-      alert("Please add both a subject and message before sending.");
+      toast.error("Please add both a subject and message before sending.");
       return;
     }
 
@@ -464,9 +471,9 @@ export default function AdminApplicationDetailPage() {
       });
       setShowEmailComposer(false);
       setEmailForm({ subject: "", text: "" });
-      alert("Email sent successfully.");
+      toast.success("Email sent successfully.");
     } catch (err) {
-      alert(err.message || "Unable to send email");
+      toast.error(err.message || "Unable to send email");
     } finally {
       setEmailSending(false);
     }
@@ -685,6 +692,25 @@ export default function AdminApplicationDetailPage() {
               </div>
             ))}
           </div>
+
+          {submission?.riskRationale && editingField !== "core:riskRationale" && (
+            <div className="mt-8 rounded-[28px] border border-blue-100 bg-blue-50/30 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-blue-500">
+                  Underwriting Rationale
+                </p>
+                <button
+                  onClick={() => handleStartEdit("core", "riskRationale", submission.riskRationale)}
+                  className="text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:text-blue-800"
+                >
+                  Edit Analysis
+                </button>
+              </div>
+              <p className="whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-700 italic">
+                {submission.riskRationale}
+              </p>
+            </div>
+          )}
         </Surface>
 
         <Surface className="p-6">

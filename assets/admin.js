@@ -1,4 +1,4 @@
-﻿import { CONFIG } from "./config.js";
+import { CONFIG } from "./config.js";
 
 const submissionsEl = document.getElementById("submissions");
 const usersEl = document.getElementById("users");

@@ -15,6 +15,8 @@ import AdminChatsPage from "./pages/AdminChatsPage.jsx";
 import VerifierLayout from "./components/VerifierLayout.jsx";
 import VerifierDashboard from "./pages/VerifierDashboard.jsx";
 import VerifierSubmissionDetail from "./pages/VerifierSubmissionDetail.jsx";
+import PolicyPage from "./pages/PolicyPage.jsx";
+import { Toaster } from "react-hot-toast";
 
 const getUser = () => {
   try {
@@ -47,6 +49,7 @@ function ChatShell({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
@@ -100,6 +103,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/policy/:type" element={<PolicyPage />} />
 
         <Route
           path="*"

@@ -1,12 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api, uploadToCloudinary } from "../services/api.js";
-
-const THINKING_MESSAGES = [
-  "I'm reading your message",
-  "Thinking about response",
-  "I'm currently responding to your message",
-  "Sending response"
-];
+import toast from "react-hot-toast";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([]);
@@ -21,21 +15,9 @@ export default function ChatPage() {
   const [historyError, setHistoryError] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [typingText, setTypingText] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef(null);
   const logRef = useRef(null);
-
-  useEffect(() => {
-    let interval;
-    if (loading && THINKING_MESSAGES.includes(typingText)) {
-      let index = THINKING_MESSAGES.indexOf(typingText);
-      interval = setInterval(() => {
-        if (index < THINKING_MESSAGES.length - 1) {
-          index++;
-          setTypingText(THINKING_MESSAGES[index]);
-        }
-      }, 10000);
-    }
-    return () => clearInterval(interval);
-  }, [loading, typingText]);
 
   useEffect(() => {
     logRef.current?.scrollTo({
@@ -83,7 +65,7 @@ export default function ChatPage() {
     const userMsg = { id: Date.now(), who: "user", text: content, time: new Date() };
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
-    setTypingText(THINKING_MESSAGES[0]);
+    setTypingText("🔄 Initializing system...");
     
     const botMsgId = Date.now() + 1;
     let initializedBotMsg = false;
@@ -108,6 +90,9 @@ export default function ChatPage() {
             prev.map((m) => (m.id === botMsgId ? { ...m, text: currentText } : m))
           );
         }
+      },
+      (statusText) => {
+        setTypingText(statusText);
       },
       (doneData) => {
         setLoading(false);
@@ -156,7 +141,7 @@ export default function ChatPage() {
     if (loading) return;
     const total = imagePack.length + documentPack.length;
     if (total >= 10) {
-      alert("You can upload up to 10 files at a time.");
+      toast.error("You can upload up to 10 files at a time.");
       return;
     }
     setUploading(true);
@@ -174,7 +159,7 @@ export default function ChatPage() {
       if (isDoc) setDocumentPack((prev) => [...prev, url]);
       else setImagePack((prev) => [...prev, url]);
     } catch (err) {
-      alert(err.message || "Upload failed");
+      toast.error(err.message || "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -189,24 +174,46 @@ export default function ChatPage() {
   };
 
   const handleSpeech = () => {
+    if (isRecording && recognitionRef.current) {
+      recognitionRef.current.stop();
+      return;
+    }
+
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Speech recognition not supported in this browser.");
+      toast.error("Speech recognition not supported in this browser.");
       return;
     }
+
     const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = () => setIsRecording(false);
+
     recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      setInput(transcript);
+      let finalTranscript = "";
+      for (let i = e.resultIndex; i < e.results.length; ++i) {
+        if (e.results[i].isFinal) {
+          finalTranscript += e.results[i][0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        setInput((prev) => (prev ? `${prev.trim()} ${finalTranscript}` : finalTranscript));
+      }
     };
+
+    recognitionRef.current = recognition;
     recognition.start();
   };
 
   const handleRead = (text, lang) => {
     if (!window.speechSynthesis) {
-      alert("Text-to-speech not supported in this browser.");
+      toast.error("Text-to-speech not supported in this browser.");
       return;
     }
     window.speechSynthesis.cancel();
@@ -315,7 +322,21 @@ export default function ChatPage() {
               }`}
             >
               <div className="whitespace-pre-wrap space-y-2">
-                {m.text.split(/((?:IMAGE|DOCUMENT): https?:\/\/[^\s]+)/g).map((part, idx) => {
+                {m.text.split(/((?:IMAGE|DOCUMENT|LINK): (?:https?:\/\/[^\s\)]+|\/[^\s\)]+)|https?:\/\/[^\s\)]+)/g).map((part, idx) => {
+                  if (part.startsWith("LINK: ")) {
+                    const url = part.replace("LINK: ", "").trim();
+                    return (
+                      <a 
+                        key={idx} 
+                        href={url} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="text-blue-600 underline font-semibold block mt-1 hover:text-blue-800 transition-colors"
+                      >
+                        Click here to view the policy
+                      </a>
+                    );
+                  }
                   if (part.startsWith("IMAGE: ")) {
                     const url = part.replace("IMAGE: ", "").trim();
                     return (
@@ -492,10 +513,19 @@ export default function ChatPage() {
                 type="button"
                 onClick={handleSpeech}
                 disabled={uploading || loading}
-                className="p-3 rounded-xl border border-slate-200 text-sm hover:bg-slate-100 transition-colors shadow-sm disabled:opacity-40"
+                className={`p-3 rounded-xl border transition-all shadow-sm disabled:opacity-40 ${
+                  isRecording 
+                    ? "bg-red-500 border-red-600 text-white animate-pulse shadow-red-200" 
+                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+                }`}
+                title={isRecording ? "Stop recording" : "Start voice input"}
               >
-                <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   {isRecording ? (
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H10a1 1 0 01-1-1v-4z" />
+                   ) : (
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                   )}
                 </svg>
               </button>
 

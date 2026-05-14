@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { api } from "../services/api.js";
 import { Surface, MediaCard, MediaLightbox, StatusBadge } from "../components/AdminUi.jsx";
 import { getApplicationFields, formatFieldValue, formatDate } from "../utils/admin.js";
+import toast from "react-hot-toast";
 
 export default function VerifierSubmissionDetail() {
   const { id } = useParams();
@@ -45,10 +46,10 @@ export default function VerifierSubmissionDetail() {
     setSaving(true);
     try {
       await api.verifySubmission(id, { status, notes });
-      alert("Verification status updated successfully.");
+      toast.success("Verification status updated successfully.");
       navigate("/verifier/dashboard");
     } catch (err) {
-      alert(err.message || "Failed to update status");
+      toast.error(err.message || "Failed to update status");
     } finally {
       setSaving(false);
     }
